@@ -179,4 +179,4 @@ MIT License - see LICENSE file for details
 
 ## Support
 
-For support and documentation, visit the [Arctos Robotics website](https://arctosrobotics.com/#Assembly)
+For support and feature requests, please [open an issue](https://github.com/jmassardo/arctos-robot-controller/issues/new) on the GitHub repository.
