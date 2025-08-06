@@ -13,12 +13,16 @@ interface ReplayStatus {
   position?: string;
 }
 
+type ReplayMode = 'once' | 'count' | 'infinite';
+
 const PositionReplay: React.FC<PositionReplayProps> = ({ positions, socket, config }) => {
   const [selectedPositions, setSelectedPositions] = useState<number[]>([]);
   const [isReplaying, setIsReplaying] = useState(false);
   const [replayStatus, setReplayStatus] = useState<ReplayStatus>({ status: 'idle' });
   const [sequenceDelay, setSequenceDelay] = useState(1000);
   const [loopCount, setLoopCount] = useState(1);
+  const [replayMode, setReplayMode] = useState<ReplayMode>('once');
+  const [shouldStop, setShouldStop] = useState(false);
 
   useEffect(() => {
     if (socket) {
@@ -55,11 +59,17 @@ const PositionReplay: React.FC<PositionReplayProps> = ({ positions, socket, conf
     }
 
     setIsReplaying(true);
+    setShouldStop(false);
     setReplayStatus({ status: 'starting' });
 
     try {
-      for (let loop = 0; loop < loopCount; loop++) {
+      const maxLoops = replayMode === 'once' ? 1 : (replayMode === 'count' ? loopCount : Infinity);
+      let loop = 0;
+      
+      while ((replayMode === 'infinite' || loop < maxLoops) && !shouldStop) {
         for (const positionId of selectedPositions) {
+          if (shouldStop) break;
+          
           const response = await axios.post(`/api/replay/${positionId}`);
           
           if (!response.data.success) {
@@ -72,16 +82,24 @@ const PositionReplay: React.FC<PositionReplayProps> = ({ positions, socket, conf
           
           await new Promise(resolve => setTimeout(resolve, totalDelay));
         }
+        loop++;
+        
+        if (shouldStop) break;
       }
       
-      setReplayStatus({ status: 'completed' });
+      setReplayStatus({ status: shouldStop ? 'idle' : 'completed' });
     } catch (error) {
       console.error('Error during replay:', error);
       alert('Error during position replay');
       setReplayStatus({ status: 'idle' });
     } finally {
       setIsReplaying(false);
+      setShouldStop(false);
     }
+  };
+
+  const stopReplay = () => {
+    setShouldStop(true);
   };
 
   const replaySinglePosition = async (positionId: number) => {
@@ -153,18 +171,62 @@ const PositionReplay: React.FC<PositionReplayProps> = ({ positions, socket, conf
           </div>
 
           <div className="form-group">
-            <label htmlFor="loopCount">Number of Loops:</label>
-            <input
-              type="number"
-              id="loopCount"
-              className="form-control"
-              value={loopCount}
-              onChange={(e) => setLoopCount(parseInt(e.target.value))}
-              min="1"
-              max="100"
-              disabled={isReplaying}
-            />
+            <label>Replay Mode:</label>
+            <div style={{ marginTop: '8px' }}>
+              <label style={{ display: 'block', marginBottom: '5px' }}>
+                <input
+                  type="radio"
+                  name="replayMode"
+                  value="once"
+                  checked={replayMode === 'once'}
+                  onChange={(e) => setReplayMode(e.target.value as ReplayMode)}
+                  disabled={isReplaying}
+                  style={{ marginRight: '8px' }}
+                />
+                Run once
+              </label>
+              <label style={{ display: 'block', marginBottom: '5px' }}>
+                <input
+                  type="radio"
+                  name="replayMode"
+                  value="count"
+                  checked={replayMode === 'count'}
+                  onChange={(e) => setReplayMode(e.target.value as ReplayMode)}
+                  disabled={isReplaying}
+                  style={{ marginRight: '8px' }}
+                />
+                Run specific count
+              </label>
+              <label style={{ display: 'block', marginBottom: '5px' }}>
+                <input
+                  type="radio"
+                  name="replayMode"
+                  value="infinite"
+                  checked={replayMode === 'infinite'}
+                  onChange={(e) => setReplayMode(e.target.value as ReplayMode)}
+                  disabled={isReplaying}
+                  style={{ marginRight: '8px' }}
+                />
+                Run indefinitely until stopped
+              </label>
+            </div>
           </div>
+
+          {replayMode === 'count' && (
+            <div className="form-group">
+              <label htmlFor="loopCount">Number of Loops:</label>
+              <input
+                type="number"
+                id="loopCount"
+                className="form-control"
+                value={loopCount}
+                onChange={(e) => setLoopCount(parseInt(e.target.value))}
+                min="1"
+                max="100"
+                disabled={isReplaying}
+              />
+            </div>
+          )}
 
           <div className="button-group">
             <button 
@@ -174,6 +236,15 @@ const PositionReplay: React.FC<PositionReplayProps> = ({ positions, socket, conf
             >
               {isReplaying ? 'Replaying...' : `Replay Selected (${selectedPositions.length})`}
             </button>
+            
+            {isReplaying && replayMode === 'infinite' && (
+              <button 
+                className="btn btn-warning" 
+                onClick={stopReplay}
+              >
+                Stop Replay
+              </button>
+            )}
             
             <button 
               className="btn btn-secondary" 
@@ -225,11 +296,12 @@ const PositionReplay: React.FC<PositionReplayProps> = ({ positions, socket, conf
             <div>
               <h4>Estimated Time</h4>
               <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#6c757d' }}>
-                {selectedPositions.length > 0 ? 
+                {replayMode === 'infinite' ? '∞' :
+                  selectedPositions.length > 0 ? 
                   `${Math.round((selectedPositions.reduce((total, id) => {
                     const pos = positions.find(p => p.id === id);
                     return total + (pos?.delay || 0) + sequenceDelay;
-                  }, 0) * loopCount) / 1000)}s` : 
+                  }, 0) * (replayMode === 'once' ? 1 : loopCount)) / 1000)}s` : 
                   '0s'
                 }
               </div>
@@ -238,7 +310,7 @@ const PositionReplay: React.FC<PositionReplayProps> = ({ positions, socket, conf
             <div>
               <h4>Total Loops</h4>
               <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#ffc107' }}>
-                {loopCount}
+                {replayMode === 'once' ? '1' : replayMode === 'infinite' ? '∞' : loopCount}
               </div>
             </div>
           </div>
