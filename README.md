@@ -49,6 +49,30 @@ A comprehensive web-based graphical interface for controlling multi-axis robotic
 - Node.js 16 or higher
 - npm or yarn package manager
 
+### GitHub Codespaces (Recommended for Development)
+This project includes a devcontainer configuration for seamless development in GitHub Codespaces:
+
+1. **Open in Codespaces**
+   - Click the green "Code" button on the repository
+   - Select "Create codespace on main"
+   - Wait for the environment to build and configure automatically
+
+2. **Automatic Setup**
+   - Dependencies for both backend and frontend are installed automatically
+   - Ports 3000 (frontend) and 5000 (backend) are forwarded automatically
+   - VS Code extensions for Node.js, React, and TypeScript development are pre-installed
+
+3. **Start Development**
+   ```bash
+   # Backend (runs on port 5000)
+   npm start
+
+   # Frontend (in a new terminal, runs on port 3000)
+   cd client && npm start
+   ```
+
+### Local Development
+
 ### Backend Setup
 ```bash
 # Install backend dependencies
