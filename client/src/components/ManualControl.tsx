@@ -257,6 +257,29 @@ const ManualControl: React.FC<ManualControlProps> = ({ config, socket }) => {
     setAxisValues(resetAxes);
   };
 
+  const homeAllAxes = async () => {
+    if (isMoving) return;
+    
+    try {
+      setIsMoving(true);
+      await axios.post('/api/home', {});
+      
+      // Reset position display to 0 after homing
+      const resetAxes: { [key: string]: number } = {};
+      for (let i = 1; i <= config.axes.count; i++) {
+        resetAxes[`axis${i}`] = 0;
+      }
+      setAxisValues(resetAxes);
+      
+      console.log('Home command sent to all controllers');
+    } catch (error) {
+      console.error('Error homing axes:', error);
+      alert('Error during homing operation');
+    } finally {
+      setIsMoving(false);
+    }
+  };
+
   const resetAllManipulators = () => {
     const resetManipulators: { [key: string]: number } = {};
     for (let i = 1; i <= config.manipulators.count; i++) {
@@ -430,6 +453,14 @@ const ManualControl: React.FC<ManualControlProps> = ({ config, socket }) => {
       <div className="reset-section">
         <h3>Reset Controls</h3>
         <div className="button-group">
+          <button 
+            className="btn btn-primary" 
+            onClick={homeAllAxes}
+            disabled={isMoving}
+            title="Home all axes - moves to absolute zero position using limit switches"
+          >
+            🏠 Home All Axes
+          </button>
           <button 
             className="btn btn-secondary" 
             onClick={resetAllAxes}
