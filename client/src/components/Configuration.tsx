@@ -130,7 +130,6 @@ const Configuration: React.FC<ConfigurationProps> = ({ config, onConfigUpdate })
             >
               <option value="serial">Serial</option>
               <option value="can">CAN Bus</option>
-              <option value="rs485">RS485</option>
             </select>
           </div>
 
@@ -198,47 +197,29 @@ const Configuration: React.FC<ConfigurationProps> = ({ config, onConfigUpdate })
           )}
 
           {localConfig.communicationProtocol === 'can' && (
-            <div className="form-group">
-              <label htmlFor="canInterface">CAN Interface:</label>
-              <input
-                type="text"
-                id="canInterface"
-                className="form-control"
-                value={localConfig.canConfig.interface}
-                onChange={(e) => handleConfigChange('canConfig', 'interface', e.target.value)}
-                placeholder="can0"
-              />
-            </div>
-          )}
-
-          {localConfig.communicationProtocol === 'rs485' && (
             <>
               <div className="form-group">
-                <label htmlFor="rs485Port">RS485 Port:</label>
+                <label htmlFor="canInterface">CAN Interface:</label>
                 <input
                   type="text"
-                  id="rs485Port"
+                  id="canInterface"
                   className="form-control"
-                  value={localConfig.rs485Config.port}
-                  onChange={(e) => handleConfigChange('rs485Config', 'port', e.target.value)}
-                  placeholder="/dev/ttyUSB1"
+                  value={localConfig.canConfig.interface}
+                  onChange={(e) => handleConfigChange('canConfig', 'interface', e.target.value)}
+                  placeholder="can0"
                 />
               </div>
               
               <div className="form-group">
-                <label htmlFor="rs485BaudRate">Baud Rate:</label>
-                <select
-                  id="rs485BaudRate"
+                <label htmlFor="canBaseId">Base CAN ID (Hex):</label>
+                <input
+                  type="text"
+                  id="canBaseId"
                   className="form-control"
-                  value={localConfig.rs485Config.baudRate}
-                  onChange={(e) => handleConfigChange('rs485Config', 'baudRate', parseInt(e.target.value))}
-                >
-                  <option value="9600">9600</option>
-                  <option value="19200">19200</option>
-                  <option value="38400">38400</option>
-                  <option value="57600">57600</option>
-                  <option value="115200">115200</option>
-                </select>
+                  value={localConfig.canConfig.baseCanId.toString(16).toUpperCase()}
+                  onChange={(e) => handleConfigChange('canConfig', 'baseCanId', parseInt(e.target.value, 16))}
+                  placeholder="100"
+                />
               </div>
             </>
           )}
