@@ -551,23 +551,23 @@ code {
 }
 
 .jog-negative {
-  background-color: #cc3333;
-  border-color: #aa2222;
+  background-color: #4a5568;
+  border-color: #2d3748;
 }
 
 .jog-negative:hover:not(:disabled) {
-  background-color: #dd4444;
-  border-color: #bb3333;
+  background-color: #63b3ed;
+  border-color: #4299e1;
 }
 
 .jog-positive {
-  background-color: #339933;
-  border-color: #228822;
+  background-color: #4a5568;
+  border-color: #2d3748;
 }
 
 .jog-positive:hover:not(:disabled) {
-  background-color: #44aa44;
-  border-color: #339933;
+  background-color: #63b3ed;
+  border-color: #4299e1;
 }
 
 .jog-btn-compact {
