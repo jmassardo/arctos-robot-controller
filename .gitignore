@@ -31,6 +31,9 @@ Thumbs.db
 *.swp
 *.swo
 
+# Keep devcontainer configuration
+!.devcontainer/
+
 # Temporary files
 tmp/
 temp/
