@@ -275,3 +275,314 @@ code {
   border: 1px solid #f5c6cb;
   color: #721c24;
 }
+
+/* Manual Control - DRO and Jog Styles */
+.emergency-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 15px;
+  background-color: #fff5f5;
+  border: 2px solid #fed7d7;
+  border-radius: 8px;
+}
+
+.emergency-stop {
+  font-size: 16px;
+  font-weight: bold;
+  padding: 12px 24px;
+  min-width: 200px;
+}
+
+.status-indicators {
+  display: flex;
+  gap: 10px;
+}
+
+.status-moving {
+  background-color: #fed7d7;
+  color: #9b2c2c;
+}
+
+.status-idle {
+  background-color: #c6f6d5;
+  color: #22543d;
+}
+
+.status-keyboard-on {
+  background-color: #bee3f8;
+  color: #2a4365;
+}
+
+.status-keyboard-off {
+  background-color: #e2e8f0;
+  color: #4a5568;
+}
+
+.jog-settings {
+  background-color: #f7fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.jog-settings h3 {
+  margin: 0 0 15px 0;
+  color: #2d3748;
+}
+
+.settings-row {
+  display: flex;
+  gap: 30px;
+  align-items: end;
+}
+
+.dro-section {
+  background-color: #1a202c;
+  color: #f7fafc;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.dro-section h3 {
+  color: #f7fafc;
+  margin: 0 0 20px 0;
+  text-align: center;
+  font-weight: bold;
+}
+
+.dro-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.axis-dro {
+  background-color: #2d3748;
+  border: 2px solid #4a5568;
+  border-radius: 8px;
+  padding: 15px;
+  text-align: center;
+}
+
+.axis-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.axis-label {
+  font-weight: bold;
+  color: #63b3ed;
+  font-size: 14px;
+}
+
+.axis-keyboard-hint {
+  font-size: 12px;
+  color: #a0aec0;
+  font-family: monospace;
+}
+
+.dro-display {
+  background-color: #000;
+  border: 2px inset #4a5568;
+  padding: 15px 10px;
+  margin: 10px 0;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+}
+
+.dro-value {
+  font-size: 24px;
+  color: #00ff00;
+  text-shadow: 0 0 5px #00ff00;
+}
+
+.dro-unit {
+  font-size: 16px;
+  color: #63b3ed;
+  margin-left: 5px;
+}
+
+.dro-limits {
+  font-size: 12px;
+  color: #a0aec0;
+  margin-bottom: 15px;
+}
+
+.jog-controls {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.jog-btn {
+  width: 50px;
+  height: 50px;
+  border: 2px solid #4a5568;
+  background-color: #4a5568;
+  color: #f7fafc;
+  font-size: 24px;
+  font-weight: bold;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.jog-btn:hover:not(:disabled) {
+  background-color: #63b3ed;
+  border-color: #63b3ed;
+  transform: translateY(-2px);
+}
+
+.jog-btn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.jog-btn:disabled {
+  background-color: #2d3748;
+  border-color: #2d3748;
+  color: #718096;
+  cursor: not-allowed;
+}
+
+.jog-minus {
+  background-color: #e53e3e;
+  border-color: #e53e3e;
+}
+
+.jog-minus:hover:not(:disabled) {
+  background-color: #fc8181;
+  border-color: #fc8181;
+}
+
+.jog-plus {
+  background-color: #38a169;
+  border-color: #38a169;
+}
+
+.jog-plus:hover:not(:disabled) {
+  background-color: #68d391;
+  border-color: #68d391;
+}
+
+.manipulator-section {
+  background-color: #f7fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.manipulator-section h3 {
+  color: #2d3748;
+  margin: 0 0 20px 0;
+  text-align: center;
+}
+
+.manipulator-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.manipulator-control {
+  background-color: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 15px;
+  text-align: center;
+}
+
+.manipulator-header {
+  margin-bottom: 10px;
+}
+
+.manipulator-label {
+  font-weight: bold;
+  color: #2d3748;
+  font-size: 14px;
+}
+
+.manipulator-buttons {
+  display: flex;
+  gap: 5px;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+.manipulator-buttons .btn {
+  flex: 1;
+  padding: 8px 12px;
+  font-size: 12px;
+}
+
+.reset-section {
+  background-color: #fff5f5;
+  border: 1px solid #fed7d7;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.reset-section h3 {
+  color: #c53030;
+  margin: 0 0 15px 0;
+}
+
+.keyboard-help {
+  background-color: #edf2f7;
+  border: 1px solid #cbd5e0;
+  border-radius: 8px;
+  padding: 20px;
+  margin-top: 20px;
+}
+
+.keyboard-help h3 {
+  color: #2d3748;
+  margin: 0 0 15px 0;
+}
+
+.shortcuts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
+}
+
+.shortcut-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  background-color: white;
+  border-radius: 4px;
+  border: 1px solid #e2e8f0;
+}
+
+.shortcut-item.emergency {
+  background-color: #fed7d7;
+  border-color: #fc8181;
+}
+
+.shortcut-item kbd {
+  background-color: #4a5568;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 12px;
+  font-weight: bold;
+  min-width: 30px;
+  text-align: center;
+}
+
+.shortcut-item.emergency kbd {
+  background-color: #c53030;
+}

@@ -274,11 +274,9 @@ const PositionReplay: React.FC<PositionReplayProps> = ({ positions, socket, conf
                       Manipulators: {Object.keys(position.manipulators).length}
                     </p>
                     <div style={{ fontSize: '12px', color: '#999', marginTop: '5px' }}>
-                      {Object.entries(position.axes).map(([axis, value]) => (
-                        <span key={axis} style={{ marginRight: '10px' }}>
-                          {axis}: {value}°
-                        </span>
-                      ))}
+                      {Object.entries(position.axes).map(([axis, value], index) => 
+                        `${axis}: ${value}°${index < Object.entries(position.axes).length - 1 ? ' | ' : ''}`
+                      ).join('')}
                     </div>
                   </div>
                 </div>

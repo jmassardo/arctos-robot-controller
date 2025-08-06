@@ -193,6 +193,22 @@ app.post('/api/manual/move', (req, res) => {
   }
 });
 
+// Emergency stop endpoint
+app.post('/api/emergency-stop', (req, res) => {
+  try {
+    console.log('Emergency stop triggered!');
+    
+    // TODO: Implement actual emergency stop hardware communication
+    // This should immediately stop all robot movement and enter safe state
+    
+    // Broadcast emergency stop to all clients
+    io.emit('emergencyStop', { timestamp: Date.now() });
+    res.json({ success: true, message: 'Emergency stop activated' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Position replay endpoint
 app.post('/api/replay/:id', (req, res) => {
   try {
@@ -245,6 +261,13 @@ io.on('connection', (socket) => {
     console.log('Real-time manual control:', data);
     // TODO: Implement real-time hardware communication
     socket.broadcast.emit('robotMovement', data);
+  });
+  
+  // Handle emergency stop
+  socket.on('emergencyStop', (data) => {
+    console.log('Emergency stop via socket:', data);
+    // TODO: Implement emergency stop hardware communication
+    socket.broadcast.emit('emergencyStop', data);
   });
 });
 
