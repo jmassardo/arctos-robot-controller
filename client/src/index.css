@@ -278,9 +278,6 @@ code {
 
 /* Manual Control - DRO and Jog Styles */
 .emergency-section {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   margin-bottom: 20px;
   padding: 15px;
   background-color: #fff5f5;
@@ -288,11 +285,37 @@ code {
   border-radius: 8px;
 }
 
+.emergency-controls {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 10px;
+}
+
 .emergency-stop {
   font-size: 16px;
   font-weight: bold;
   padding: 12px 24px;
   min-width: 200px;
+}
+
+.home-button {
+  font-size: 16px;
+  font-weight: bold;
+  padding: 12px 24px;
+  min-width: 180px;
+  background-color: #f6ad55;
+  border-color: #ed8936;
+}
+
+.home-button:hover:not(:disabled) {
+  background-color: #ed8936;
+  border-color: #dd7224;
+}
+
+.home-button:disabled {
+  background-color: #fbd38d;
+  border-color: #f6ad55;
+  opacity: 0.6;
 }
 
 .status-indicators {

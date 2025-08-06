@@ -56,6 +56,34 @@ const ManualControl: React.FC<ManualControlProps> = ({ config, socket }) => {
     }
   }, [socket]);
 
+  // Home all axes function
+  const homeAllAxes = useCallback(async () => {
+    try {
+      setIsMoving(true);
+      const response = await axios.post('/api/home');
+      
+      if (response.data.success) {
+        // Reset all axis values to 0 (home position)
+        const homeAxes: { [key: string]: number } = {};
+        for (let i = 1; i <= config.axes.count; i++) {
+          homeAxes[`axis${i}`] = 0;
+        }
+        setAxisValues(homeAxes);
+        
+        console.log('Home command executed successfully');
+        alert('All axes homed successfully');
+      } else {
+        console.error('Home command failed:', response.data.error);
+        alert('Home command failed');
+      }
+    } catch (error) {
+      console.error('Error executing home command:', error);
+      alert('Error executing home command');
+    } finally {
+      setTimeout(() => setIsMoving(false), 2000); // Allow time for homing
+    }
+  }, [config.axes.count]);
+
   // Jog axis function
   const jogAxis = useCallback(async (axis: string, deltaValue: number) => {
     const currentValue = axisValues[axis] || 0;
@@ -192,9 +220,22 @@ const ManualControl: React.FC<ManualControlProps> = ({ config, socket }) => {
     }
 
     try {
+      // Try to get current positions from MKS57D controllers
+      let currentPositions = axisValues; // Default to UI values
+      
+      try {
+        const response = await axios.get('/api/positions/current');
+        if (response.data.success && response.data.positions) {
+          currentPositions = response.data.positions;
+          console.log('Retrieved current positions from controllers:', currentPositions);
+        }
+      } catch (error) {
+        console.warn('Could not read from controllers, using UI values:', error);
+      }
+
       await axios.post('/api/positions', {
         name: positionName,
-        axes: axisValues,
+        axes: currentPositions,
         manipulators: manipulatorValues,
         delay: positionDelay
       });
@@ -216,6 +257,29 @@ const ManualControl: React.FC<ManualControlProps> = ({ config, socket }) => {
     setAxisValues(resetAxes);
   };
 
+  const homeAllAxes = async () => {
+    if (isMoving) return;
+    
+    try {
+      setIsMoving(true);
+      await axios.post('/api/home', {});
+      
+      // Reset position display to 0 after homing
+      const resetAxes: { [key: string]: number } = {};
+      for (let i = 1; i <= config.axes.count; i++) {
+        resetAxes[`axis${i}`] = 0;
+      }
+      setAxisValues(resetAxes);
+      
+      console.log('Home command sent to all controllers');
+    } catch (error) {
+      console.error('Error homing axes:', error);
+      alert('Error during homing operation');
+    } finally {
+      setIsMoving(false);
+    }
+  };
+
   const resetAllManipulators = () => {
     const resetManipulators: { [key: string]: number } = {};
     for (let i = 1; i <= config.manipulators.count; i++) {
@@ -232,13 +296,22 @@ const ManualControl: React.FC<ManualControlProps> = ({ config, socket }) => {
       
       {/* Emergency Stop and Status */}
       <div className="emergency-section">
-        <button 
-          className="btn btn-danger emergency-stop" 
-          onClick={emergencyStop}
-          disabled={!isMoving}
-        >
-          🛑 EMERGENCY STOP (ESC)
-        </button>
+        <div className="emergency-controls">
+          <button 
+            className="btn btn-danger emergency-stop" 
+            onClick={emergencyStop}
+            disabled={!isMoving}
+          >
+            🛑 EMERGENCY STOP (ESC)
+          </button>
+          <button 
+            className="btn btn-warning home-button" 
+            onClick={homeAllAxes}
+            disabled={isMoving}
+          >
+            🏠 HOME ALL AXES
+          </button>
+        </div>
         <div className="status-indicators">
           <span className={`status-indicator ${isMoving ? 'status-moving' : 'status-idle'}`}>
             {isMoving ? 'MOVING' : 'IDLE'}
@@ -380,6 +453,14 @@ const ManualControl: React.FC<ManualControlProps> = ({ config, socket }) => {
       <div className="reset-section">
         <h3>Reset Controls</h3>
         <div className="button-group">
+          <button 
+            className="btn btn-primary" 
+            onClick={homeAllAxes}
+            disabled={isMoving}
+            title="Home all axes - moves to absolute zero position using limit switches"
+          >
+            🏠 Home All Axes
+          </button>
           <button 
             className="btn btn-secondary" 
             onClick={resetAllAxes}
