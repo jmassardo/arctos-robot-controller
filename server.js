@@ -30,6 +30,7 @@ if (process.env.NODE_ENV === 'production') {
 // Configuration storage
 const CONFIG_FILE = path.join(__dirname, 'config', 'robot-config.json');
 const POSITIONS_FILE = path.join(__dirname, 'data', 'saved-positions.json');
+const GROUPS_FILE = path.join(__dirname, 'data', 'position-groups.json');
 
 // Ensure config and data directories exist
 fs.ensureDirSync(path.join(__dirname, 'config'));
@@ -90,6 +91,17 @@ if (fs.existsSync(POSITIONS_FILE)) {
   }
 }
 
+// Load position groups
+let positionGroups = [];
+if (fs.existsSync(GROUPS_FILE)) {
+  try {
+    positionGroups = fs.readJsonSync(GROUPS_FILE);
+  } catch (error) {
+    console.error('Error loading position groups:', error);
+    positionGroups = [];
+  }
+}
+
 // API Routes
 app.get('/api/config', (req, res) => {
   res.json(robotConfig);
@@ -134,6 +146,36 @@ app.post('/api/positions', (req, res) => {
   }
 });
 
+app.put('/api/positions/:id', (req, res) => {
+  try {
+    const positionId = parseInt(req.params.id);
+    const positionIndex = savedPositions.findIndex(pos => pos.id === positionId);
+    
+    if (positionIndex === -1) {
+      return res.status(404).json({ success: false, error: 'Position not found' });
+    }
+    
+    // Update position with new data, preserving id and timestamp
+    const updatedPosition = {
+      ...savedPositions[positionIndex],
+      name: req.body.name,
+      axes: req.body.axes,
+      manipulators: req.body.manipulators,
+      delay: req.body.delay || 0,
+      groupId: req.body.groupId || null
+    };
+    
+    savedPositions[positionIndex] = updatedPosition;
+    fs.writeJsonSync(POSITIONS_FILE, savedPositions, { spaces: 2 });
+    res.json({ success: true, position: updatedPosition });
+    
+    // Broadcast position update to all clients
+    io.emit('positionsUpdated', savedPositions);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 app.delete('/api/positions/:id', (req, res) => {
   try {
     const positionId = parseInt(req.params.id);
@@ -142,6 +184,178 @@ app.delete('/api/positions/:id', (req, res) => {
     res.json({ success: true });
     
     // Broadcast position update to all clients
+    io.emit('positionsUpdated', savedPositions);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/positions/reorder', (req, res) => {
+  try {
+    const { positionIds } = req.body;
+    
+    // Reorder positions based on the provided array of IDs
+    const reorderedPositions = [];
+    positionIds.forEach(id => {
+      const position = savedPositions.find(pos => pos.id === id);
+      if (position) {
+        reorderedPositions.push(position);
+      }
+    });
+    
+    // Add any positions that weren't in the reorder list
+    savedPositions.forEach(position => {
+      if (!positionIds.includes(position.id)) {
+        reorderedPositions.push(position);
+      }
+    });
+    
+    savedPositions = reorderedPositions;
+    fs.writeJsonSync(POSITIONS_FILE, savedPositions, { spaces: 2 });
+    res.json({ success: true });
+    
+    // Broadcast position update to all clients
+    io.emit('positionsUpdated', savedPositions);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Group management endpoints
+app.get('/api/groups', (req, res) => {
+  res.json(positionGroups);
+});
+
+app.post('/api/groups', (req, res) => {
+  try {
+    const newGroup = {
+      id: Date.now(),
+      name: req.body.name,
+      description: req.body.description || '',
+      positionIds: [],
+      timestamp: new Date().toISOString()
+    };
+    
+    positionGroups.push(newGroup);
+    fs.writeJsonSync(GROUPS_FILE, positionGroups, { spaces: 2 });
+    res.json({ success: true, group: newGroup });
+    
+    // Broadcast group update to all clients
+    io.emit('groupsUpdated', positionGroups);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.put('/api/groups/:id', (req, res) => {
+  try {
+    const groupId = parseInt(req.params.id);
+    const groupIndex = positionGroups.findIndex(group => group.id === groupId);
+    
+    if (groupIndex === -1) {
+      return res.status(404).json({ success: false, error: 'Group not found' });
+    }
+    
+    // Update group with new data, preserving id and timestamp
+    const updatedGroup = {
+      ...positionGroups[groupIndex],
+      name: req.body.name,
+      description: req.body.description || '',
+      positionIds: req.body.positionIds || positionGroups[groupIndex].positionIds
+    };
+    
+    positionGroups[groupIndex] = updatedGroup;
+    fs.writeJsonSync(GROUPS_FILE, positionGroups, { spaces: 2 });
+    res.json({ success: true, group: updatedGroup });
+    
+    // Broadcast group update to all clients
+    io.emit('groupsUpdated', positionGroups);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.delete('/api/groups/:id', (req, res) => {
+  try {
+    const groupId = parseInt(req.params.id);
+    
+    // Remove group reference from positions
+    savedPositions.forEach(position => {
+      if (position.groupId === groupId) {
+        delete position.groupId;
+      }
+    });
+    fs.writeJsonSync(POSITIONS_FILE, savedPositions, { spaces: 2 });
+    
+    // Remove group
+    positionGroups = positionGroups.filter(group => group.id !== groupId);
+    fs.writeJsonSync(GROUPS_FILE, positionGroups, { spaces: 2 });
+    res.json({ success: true });
+    
+    // Broadcast updates to all clients
+    io.emit('groupsUpdated', positionGroups);
+    io.emit('positionsUpdated', savedPositions);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/groups/:groupId/positions/:positionId', (req, res) => {
+  try {
+    const groupId = parseInt(req.params.groupId);
+    const positionId = parseInt(req.params.positionId);
+    
+    const group = positionGroups.find(g => g.id === groupId);
+    const position = savedPositions.find(p => p.id === positionId);
+    
+    if (!group || !position) {
+      return res.status(404).json({ success: false, error: 'Group or position not found' });
+    }
+    
+    // Add position to group if not already there
+    if (!group.positionIds.includes(positionId)) {
+      group.positionIds.push(positionId);
+    }
+    
+    // Set group reference on position
+    position.groupId = groupId;
+    
+    fs.writeJsonSync(GROUPS_FILE, positionGroups, { spaces: 2 });
+    fs.writeJsonSync(POSITIONS_FILE, savedPositions, { spaces: 2 });
+    res.json({ success: true });
+    
+    // Broadcast updates to all clients
+    io.emit('groupsUpdated', positionGroups);
+    io.emit('positionsUpdated', savedPositions);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.delete('/api/groups/:groupId/positions/:positionId', (req, res) => {
+  try {
+    const groupId = parseInt(req.params.groupId);
+    const positionId = parseInt(req.params.positionId);
+    
+    const group = positionGroups.find(g => g.id === groupId);
+    const position = savedPositions.find(p => p.id === positionId);
+    
+    if (!group || !position) {
+      return res.status(404).json({ success: false, error: 'Group or position not found' });
+    }
+    
+    // Remove position from group
+    group.positionIds = group.positionIds.filter(id => id !== positionId);
+    
+    // Remove group reference from position
+    delete position.groupId;
+    
+    fs.writeJsonSync(GROUPS_FILE, positionGroups, { spaces: 2 });
+    fs.writeJsonSync(POSITIONS_FILE, savedPositions, { spaces: 2 });
+    res.json({ success: true });
+    
+    // Broadcast updates to all clients
+    io.emit('groupsUpdated', positionGroups);
     io.emit('positionsUpdated', savedPositions);
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -251,6 +465,7 @@ io.on('connection', (socket) => {
   // Send current configuration and positions to new client
   socket.emit('configUpdated', robotConfig);
   socket.emit('positionsUpdated', savedPositions);
+  socket.emit('groupsUpdated', positionGroups);
   
   socket.on('disconnect', () => {
     console.log('Client disconnected:', socket.id);

@@ -39,6 +39,15 @@ interface SavedPosition {
   manipulators: { [key: string]: number };
   delay: number;
   timestamp: string;
+  groupId?: number;
+}
+
+interface PositionGroup {
+  id: number;
+  name: string;
+  description: string;
+  positionIds: number[];
+  timestamp: string;
 }
 
 type TabType = 'manual' | 'gcode' | 'replay' | 'config';
@@ -48,6 +57,7 @@ const App: React.FC = () => {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [config, setConfig] = useState<RobotConfig | null>(null);
   const [positions, setPositions] = useState<SavedPosition[]>([]);
+  const [groups, setGroups] = useState<PositionGroup[]>([]);
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected'>('disconnected');
 
   useEffect(() => {
@@ -73,9 +83,14 @@ const App: React.FC = () => {
       setPositions(newPositions);
     });
 
+    socketConnection.on('groupsUpdated', (newGroups: PositionGroup[]) => {
+      setGroups(newGroups);
+    });
+
     // Load initial configuration and positions
     loadConfig();
     loadPositions();
+    loadGroups();
 
     return () => {
       socketConnection.disconnect();
@@ -100,6 +115,15 @@ const App: React.FC = () => {
     }
   };
 
+  const loadGroups = async () => {
+    try {
+      const response = await axios.get('/api/groups');
+      setGroups(response.data);
+    } catch (error) {
+      console.error('Error loading groups:', error);
+    }
+  };
+
   const renderTabContent = () => {
     if (!config) {
       return (
@@ -115,7 +139,7 @@ const App: React.FC = () => {
       case 'gcode':
         return <GCodeControl socket={socket} />;
       case 'replay':
-        return <PositionReplay positions={positions} socket={socket} config={config} />;
+        return <PositionReplay positions={positions} groups={groups} socket={socket} config={config} />;
       case 'config':
         return <Configuration config={config} onConfigUpdate={setConfig} />;
       default:
