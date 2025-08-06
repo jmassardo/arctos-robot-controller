@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Arctos Robot Controller - Demo</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+                'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        header h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .status-indicator {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            text-transform: uppercase;
+            background-color: #d4edda;
+            color: #155724;
+            display: inline-block;
+        }
+
+        .nav-tabs {
+            display: flex;
+            background-color: white;
+            border-radius: 8px 8px 0 0;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 0;
+        }
+
+        .nav-tab {
+            flex: 1;
+            padding: 15px 20px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .nav-tab:hover {
+            background-color: #f8f9fa;
+            color: #333;
+        }
+
+        .nav-tab.active {
+            color: #007bff;
+            border-bottom-color: #007bff;
+            background-color: #f8f9fa;
+        }
+
+        .tab-content {
+            background-color: white;
+            border-radius: 0 0 8px 8px;
+            padding: 30px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            min-height: 600px;
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .control-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .control-section {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+
+        .control-section h3 {
+            margin: 0 0 20px 0;
+            color: #333;
+            font-size: 18px;
+        }
+
+        .axis-control {
+            margin-bottom: 15px;
+        }
+
+        .axis-control label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #555;
+        }
+
+        .axis-control input[type="range"] {
+            width: 100%;
+            margin-bottom: 5px;
+        }
+
+        .axis-value {
+            font-size: 14px;
+            color: #666;
+            text-align: center;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-success {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background-color: #1e7e34;
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #545b62;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #555;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        .textarea {
+            min-height: 150px;
+            resize: vertical;
+            font-family: 'Courier New', monospace;
+        }
+
+        .alert {
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Arctos Robot Controller</h1>
+            <div class="status-indicator">Connected</div>
+        </header>
+
+        <nav class="nav-tabs">
+            <button class="nav-tab active" onclick="showTab('manual')">Manual Control</button>
+            <button class="nav-tab" onclick="showTab('gcode')">G-Code Control</button>
+            <button class="nav-tab" onclick="showTab('replay')">Position Replay</button>
+            <button class="nav-tab" onclick="showTab('config')">Configuration</button>
+        </nav>
+
+        <main>
+            <!-- Manual Control Tab -->
+            <div id="manual" class="tab-content active">
+                <h2>Manual Control</h2>
+                <p>Use the controls below to manually position the robotic arm axes and manipulators.</p>
+                
+                <div class="control-grid">
+                    <div class="control-section">
+                        <h3>Axis Control (6 axes)</h3>
+                        <div class="axis-control">
+                            <label>Axis 1 (-180° to 180°)</label>
+                            <input type="range" min="-180" max="180" value="0" oninput="updateAxisValue(this, 1)">
+                            <div class="axis-value">0°</div>
+                        </div>
+                        <div class="axis-control">
+                            <label>Axis 2 (-90° to 90°)</label>
+                            <input type="range" min="-90" max="90" value="0" oninput="updateAxisValue(this, 2)">
+                            <div class="axis-value">0°</div>
+                        </div>
+                        <div class="axis-control">
+                            <label>Axis 3 (-180° to 180°)</label>
+                            <input type="range" min="-180" max="180" value="0" oninput="updateAxisValue(this, 3)">
+                            <div class="axis-value">0°</div>
+                        </div>
+                        <div class="button-group">
+                            <button class="btn btn-secondary">Reset All Axes</button>
+                        </div>
+                    </div>
+
+                    <div class="control-section">
+                        <h3>Manipulator Control (2 manipulators)</h3>
+                        <div class="axis-control">
+                            <label>Gripper 1 (0% to 100%)</label>
+                            <input type="range" min="0" max="100" value="0" oninput="updateGripperValue(this, 1)">
+                            <div class="axis-value">0%</div>
+                        </div>
+                        <div class="axis-control">
+                            <label>Gripper 2 (0% to 100%)</label>
+                            <input type="range" min="0" max="100" value="0" oninput="updateGripperValue(this, 2)">
+                            <div class="axis-value">0%</div>
+                        </div>
+                        <div class="button-group">
+                            <button class="btn btn-secondary">Reset All Manipulators</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <h3>Position Recording</h3>
+                    <p>Save the current arm position for later replay.</p>
+                    
+                    <div class="form-group">
+                        <label>Position Name:</label>
+                        <input type="text" class="form-control" placeholder="Enter a name for this position">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Delay (ms):</label>
+                        <input type="number" class="form-control" value="1000" min="0" step="100">
+                    </div>
+                    
+                    <div class="button-group">
+                        <button class="btn btn-success">Save Current Position</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- G-Code Control Tab -->
+            <div id="gcode" class="tab-content">
+                <h2>G-Code Control</h2>
+                <p>Enter G-code commands to automatically control the robotic arm.</p>
+
+                <div class="control-grid">
+                    <div class="control-section">
+                        <h3>G-Code Editor</h3>
+                        
+                        <div class="form-group">
+                            <label>G-Code Commands:</label>
+                            <textarea class="form-control textarea" placeholder="Enter your G-code commands here...">; Sample G-code for robotic arm movement
+G21 ; Set units to millimeters
+G90 ; Absolute positioning
+G28 ; Home all axes
+
+; Move to starting position
+G1 X100 Y100 Z50 F1000
+G1 Z20 F500
+
+; Pick up operation
+M106 ; Activate gripper
+G4 P1000 ; Wait 1 second
+
+M2 ; End program</textarea>
+                        </div>
+
+                        <div class="button-group">
+                            <button class="btn btn-success">Execute G-Code</button>
+                            <button class="btn btn-secondary">Load Sample</button>
+                            <button class="btn btn-secondary">Clear</button>
+                        </div>
+                    </div>
+
+                    <div class="control-section">
+                        <h3>Execution Status</h3>
+                        
+                        <div class="status-indicator">IDLE</div>
+                        
+                        <h4 style="margin-top: 20px;">G-Code Reference</h4>
+                        <div style="font-size: 12px; color: #666; line-height: 1.4;">
+                            <p><strong>Common Commands:</strong></p>
+                            <ul style="padding-left: 20px;">
+                                <li><code>G1 X Y Z</code> - Linear move</li>
+                                <li><code>G28</code> - Home all axes</li>
+                                <li><code>M106</code> - Activate gripper</li>
+                                <li><code>M107</code> - Deactivate gripper</li>
+                                <li><code>F1000</code> - Set feed rate</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Position Replay Tab -->
+            <div id="replay" class="tab-content">
+                <h2>Position Replay</h2>
+                <p>Select saved positions to replay automatically.</p>
+
+                <div class="control-grid">
+                    <div class="control-section">
+                        <h3>Sequence Controls</h3>
+                        
+                        <div class="form-group">
+                            <label>Delay Between Positions (ms):</label>
+                            <input type="number" class="form-control" value="1000" min="0" step="100">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Number of Loops:</label>
+                            <input type="number" class="form-control" value="1" min="1" max="100">
+                        </div>
+
+                        <div class="button-group">
+                            <button class="btn btn-success">Replay Selected (1)</button>
+                            <button class="btn btn-secondary">Select All</button>
+                            <button class="btn btn-secondary">Clear Selection</button>
+                        </div>
+                    </div>
+
+                    <div class="control-section">
+                        <h3>Replay Statistics</h3>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                            <div>
+                                <h4>Total Positions</h4>
+                                <div style="font-size: 24px; font-weight: bold; color: #007bff;">1</div>
+                            </div>
+                            <div>
+                                <h4>Selected</h4>
+                                <div style="font-size: 24px; font-weight: bold; color: #28a745;">1</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <h3>Saved Positions</h3>
+                    
+                    <div style="background-color: #f8f9fa; border-radius: 8px; padding: 20px;">
+                        <div style="background-color: white; padding: 15px; border-radius: 4px; border: 1px solid #e9ecef; display: flex; justify-content: space-between; align-items: center;">
+                            <div style="display: flex; align-items: center; gap: 15px;">
+                                <input type="checkbox" checked style="transform: scale(1.2);">
+                                <div>
+                                    <h4 style="margin: 0 0 5px 0; color: #333;">Test Position 1</h4>
+                                    <p style="margin: 0; color: #666; font-size: 12px;">
+                                        Saved: 2025-08-06 16:51:02 | Delay: 2000ms | Axes: 3 | Manipulators: 1
+                                    </p>
+                                    <div style="font-size: 12px; color: #999; margin-top: 5px;">
+                                        axis1: 45° axis2: -30° axis3: 90°
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="button-group">
+                                <button class="btn btn-success">Replay</button>
+                                <button class="btn btn-secondary">Delete</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Configuration Tab -->
+            <div id="config" class="tab-content">
+                <h2>Configuration</h2>
+                <p>Configure your robotic arm settings, communication protocols, and axis limits.</p>
+
+                <div class="control-grid">
+                    <div class="control-section">
+                        <h3>Robot Configuration</h3>
+                        
+                        <div class="form-group">
+                            <label>Robot Type:</label>
+                            <select class="form-control">
+                                <option value="arctos" selected>Arctos</option>
+                                <option value="generic">Generic</option>
+                                <option value="custom">Custom</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Communication Protocol:</label>
+                            <select class="form-control">
+                                <option value="serial" selected>Serial</option>
+                                <option value="can">CAN Bus</option>
+                                <option value="rs485">RS485</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Number of Axes:</label>
+                            <input type="number" class="form-control" value="6" min="1" max="8">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Number of Manipulators:</label>
+                            <input type="number" class="form-control" value="2" min="0" max="2">
+                        </div>
+                    </div>
+
+                    <div class="control-section">
+                        <h3>Communication Settings</h3>
+                        
+                        <div class="form-group">
+                            <label>Serial Port:</label>
+                            <input type="text" class="form-control" value="/dev/ttyUSB0">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Baud Rate:</label>
+                            <select class="form-control">
+                                <option value="9600">9600</option>
+                                <option value="19200">19200</option>
+                                <option value="38400">38400</option>
+                                <option value="57600">57600</option>
+                                <option value="115200" selected>115200</option>
+                                <option value="250000">250000</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert">
+                    Configuration will be saved automatically when changed.
+                </div>
+
+                <div class="button-group">
+                    <button class="btn btn-success">Save Configuration</button>
+                    <button class="btn btn-secondary">Reset to Defaults</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        function showTab(tabName) {
+            // Hide all tabs
+            const tabs = document.querySelectorAll('.tab-content');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            
+            const navTabs = document.querySelectorAll('.nav-tab');
+            navTabs.forEach(tab => tab.classList.remove('active'));
+            
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function updateAxisValue(slider, axisNum) {
+            const valueDiv = slider.nextElementSibling;
+            valueDiv.textContent = slider.value + '°';
+        }
+
+        function updateGripperValue(slider, gripperNum) {
+            const valueDiv = slider.nextElementSibling;
+            valueDiv.textContent = slider.value + '%';
+        }
+    </script>
+</body>
+</html>
