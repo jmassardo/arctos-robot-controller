@@ -6,6 +6,10 @@ client/node_modules/
 client/build/
 dist/
 
+# Test coverage
+coverage/
+client/coverage/
+
 # Logs
 *.log
 npm-debug.log*
