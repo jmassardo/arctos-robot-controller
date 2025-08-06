@@ -7,16 +7,16 @@ console.log('Testing MKS57D library...');
 try {
   // Test MKS57D class instantiation
   const mks57d = new MKS57D({
-    port: '/dev/ttyUSB1',
-    baudRate: 9600
+    interface: 'can0',
+    baseCanId: 0x100
   });
   console.log('✓ MKS57D class instantiated successfully');
 
   // Test MKS57DManager class instantiation
   const manager = new MKS57DManager({
-    rs485Config: {
-      port: '/dev/ttyUSB1',
-      baudRate: 9600
+    canConfig: {
+      interface: 'can0',
+      baseCanId: 0x100
     }
   });
   console.log('✓ MKS57DManager class instantiated successfully');

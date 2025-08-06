@@ -45,11 +45,8 @@ const defaultConfig = {
     baudRate: 115200
   },
   canConfig: {
-    interface: 'can0'
-  },
-  rs485Config: {
-    port: '/dev/ttyUSB1',
-    baudRate: 9600
+    interface: 'can0',
+    baseCanId: 256
   },
   axes: {
     count: 6,
@@ -95,10 +92,10 @@ if (fs.existsSync(POSITIONS_FILE)) {
 let mks57dManager = null;
 
 async function initializeMKS57D() {
-  if (robotConfig.communicationProtocol === 'rs485') {
+  if (robotConfig.communicationProtocol === 'can') {
     try {
       mks57dManager = new MKS57DManager({
-        rs485Config: robotConfig.rs485Config,
+        canConfig: robotConfig.canConfig,
         controllerAddresses: robotConfig.controllerAddresses || [1, 2, 3, 4, 5, 6]
       });
       
@@ -116,8 +113,8 @@ async function initializeMKS57D() {
   }
 }
 
-// Initialize MKS57D on startup if RS485 is configured
-if (robotConfig.communicationProtocol === 'rs485') {
+// Initialize MKS57D on startup if CAN is configured
+if (robotConfig.communicationProtocol === 'can') {
   initializeMKS57D();
 }
 
@@ -132,14 +129,14 @@ app.post('/api/config', async (req, res) => {
     robotConfig = { ...robotConfig, ...req.body };
     fs.writeJsonSync(CONFIG_FILE, robotConfig, { spaces: 2 });
     
-    // Reinitialize MKS57D manager if communication protocol changed to RS485
+    // Reinitialize MKS57D manager if communication protocol changed to CAN
     if (oldProtocol !== robotConfig.communicationProtocol) {
       if (mks57dManager) {
         await mks57dManager.shutdown();
         mks57dManager = null;
       }
       
-      if (robotConfig.communicationProtocol === 'rs485') {
+      if (robotConfig.communicationProtocol === 'can') {
         await initializeMKS57D();
       }
     }
