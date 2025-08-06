@@ -7,21 +7,12 @@ interface ManualControlProps {
   socket: Socket | null;
 }
 
-interface JogSettings {
-  stepSize: number;
-  speed: number;
-}
-
 const ManualControl: React.FC<ManualControlProps> = ({ config, socket }) => {
   const [axisValues, setAxisValues] = useState<{ [key: string]: number }>({});
   const [manipulatorValues, setManipulatorValues] = useState<{ [key: string]: number }>({});
   const [positionName, setPositionName] = useState('');
   const [positionDelay, setPositionDelay] = useState(1000);
   const [isMoving, setIsMoving] = useState(false);
-  const [jogSettings, setJogSettings] = useState<JogSettings>({
-    stepSize: 1.0,
-    speed: 100
-  });
   const [keyboardEnabled, setKeyboardEnabled] = useState(true);
 
   useEffect(() => {
@@ -84,6 +75,34 @@ const ManualControl: React.FC<ManualControlProps> = ({ config, socket }) => {
     }
   }, [axisValues, config.axes.limits, socket]);
 
+  // Jog manipulator function
+  const jogManipulator = useCallback(async (manipulator: string, deltaValue: number) => {
+    const currentValue = manipulatorValues[manipulator] || 0;
+    const newValue = currentValue + deltaValue;
+    
+    // Check limits
+    const limits = config.manipulators[manipulator] || { min: 0, max: 100 };
+    const clampedValue = Math.max(limits.min, Math.min(limits.max, newValue));
+    
+    if (clampedValue !== currentValue) {
+      setIsMoving(true);
+      setManipulatorValues(prev => ({ ...prev, [manipulator]: clampedValue }));
+      
+      try {
+        await axios.post('/api/manual/move', { manipulator, value: clampedValue });
+        
+        // Emit real-time update via socket
+        if (socket) {
+          socket.emit('manualControl', { manipulator, value: clampedValue, timestamp: Date.now() });
+        }
+      } catch (error) {
+        console.error('Error moving manipulator:', error);
+      } finally {
+        setIsMoving(false);
+      }
+    }
+  }, [manipulatorValues, config.manipulators, socket]);
+
   // Keyboard event handler
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
     if (!keyboardEnabled) return;
@@ -105,40 +124,40 @@ const ManualControl: React.FC<ManualControlProps> = ({ config, socket }) => {
     if (!isMoving) {
       switch (event.code) {
         case 'ArrowLeft': // X- (Axis 1 negative)
-          jogAxis('axis1', -jogSettings.stepSize);
+          jogAxis('axis1', -1);
           break;
         case 'ArrowRight': // X+ (Axis 1 positive)
-          jogAxis('axis1', jogSettings.stepSize);
+          jogAxis('axis1', 1);
           break;
         case 'ArrowUp': // Y+ (Axis 2 positive)
-          jogAxis('axis2', jogSettings.stepSize);
+          jogAxis('axis2', 1);
           break;
         case 'ArrowDown': // Y- (Axis 2 negative)
-          jogAxis('axis2', -jogSettings.stepSize);
+          jogAxis('axis2', -1);
           break;
         case 'PageUp': // Z+ (Axis 3 positive)
           if (config.axes.count >= 3) {
-            jogAxis('axis3', jogSettings.stepSize);
+            jogAxis('axis3', 1);
           }
           break;
         case 'PageDown': // Z- (Axis 3 negative)
           if (config.axes.count >= 3) {
-            jogAxis('axis3', -jogSettings.stepSize);
+            jogAxis('axis3', -1);
           }
           break;
         case 'Home': // A+ (Axis 4 positive)
           if (config.axes.count >= 4) {
-            jogAxis('axis4', jogSettings.stepSize);
+            jogAxis('axis4', 1);
           }
           break;
         case 'End': // A- (Axis 4 negative)
           if (config.axes.count >= 4) {
-            jogAxis('axis4', -jogSettings.stepSize);
+            jogAxis('axis4', -1);
           }
           break;
       }
     }
-  }, [keyboardEnabled, isMoving, jogSettings.stepSize, config.axes.count, emergencyStop, jogAxis]);
+  }, [keyboardEnabled, isMoving, config.axes.count, emergencyStop, jogAxis]);
 
   useEffect(() => {
     // Add keyboard event listeners
@@ -254,20 +273,6 @@ const ManualControl: React.FC<ManualControlProps> = ({ config, socket }) => {
         <h3>Jog Settings</h3>
         <div className="settings-row">
           <div className="form-group">
-            <label>Step Size (°):</label>
-            <select 
-              value={jogSettings.stepSize} 
-              onChange={(e) => setJogSettings(prev => ({ ...prev, stepSize: parseFloat(e.target.value) }))}
-              className="form-control"
-            >
-              <option value={0.1}>0.1°</option>
-              <option value={0.5}>0.5°</option>
-              <option value={1.0}>1.0°</option>
-              <option value={5.0}>5.0°</option>
-              <option value={10.0}>10.0°</option>
-            </select>
-          </div>
-          <div className="form-group">
             <label>
               <input 
                 type="checkbox" 
@@ -280,17 +285,19 @@ const ManualControl: React.FC<ManualControlProps> = ({ config, socket }) => {
         </div>
       </div>
       
-      {/* Industrial-style DRO Display */}
+      {/* Industrial-style DRO Display with Unified Controls */}
       <div className="dro-section">
-        <h3>Digital Readout & Axis Control</h3>
+        <h3>Digital Readout & Control</h3>
         <div className="dro-industrial-panel">
           <div className="dro-header">
-            <div className="dro-header-cell">AXIS</div>
+            <div className="dro-header-cell">TYPE</div>
             <div className="dro-header-cell">POSITION</div>
             <div className="dro-header-cell">LIMITS</div>
-            <div className="dro-header-cell">JOG</div>
+            <div className="dro-header-cell">JOG CONTROLS</div>
             <div className="dro-header-cell">KEYS</div>
           </div>
+          
+          {/* Render Axes */}
           {Array.from({ length: config.axes.count }, (_, i) => {
             const axisName = `axis${i + 1}`;
             const limits = config.axes.limits[axisName] || { min: -180, max: 180 };
@@ -299,7 +306,7 @@ const ManualControl: React.FC<ManualControlProps> = ({ config, socket }) => {
             
             return (
               <div key={axisName} className="dro-row">
-                <div className="dro-cell axis-cell">
+                <div className="dro-cell type-cell">
                   <span className="axis-number">{i + 1}</span>
                   <span className="axis-name">{['X', 'Y', 'Z', 'A', 'B', 'C'][i]}</span>
                 </div>
@@ -313,23 +320,61 @@ const ManualControl: React.FC<ManualControlProps> = ({ config, socket }) => {
                   <span className="dro-limits-compact">{limits.min}° to {limits.max}°</span>
                 </div>
                 <div className="dro-cell jog-cell">
-                  <div className="jog-controls-compact">
-                    <button 
-                      className="jog-btn-compact jog-minus-compact"
-                      onMouseDown={() => jogAxis(axisName, -jogSettings.stepSize)}
-                      disabled={isMoving || currentValue <= limits.min}
-                      title={`Jog ${axisName} negative`}
-                    >
-                      −
-                    </button>
-                    <button 
-                      className="jog-btn-compact jog-plus-compact"
-                      onMouseDown={() => jogAxis(axisName, jogSettings.stepSize)}
-                      disabled={isMoving || currentValue >= limits.max}
-                      title={`Jog ${axisName} positive`}
-                    >
-                      +
-                    </button>
+                  <div className="jog-controls-stacked">
+                    {/* Negative direction buttons */}
+                    <div className="jog-direction-group">
+                      <button 
+                        className="jog-btn-stacked jog-negative"
+                        onMouseDown={() => jogAxis(axisName, -25)}
+                        disabled={isMoving || currentValue <= limits.min}
+                        title={`Jog ${axisName} -25°`}
+                      >
+                        ←←←
+                      </button>
+                      <button 
+                        className="jog-btn-stacked jog-negative"
+                        onMouseDown={() => jogAxis(axisName, -10)}
+                        disabled={isMoving || currentValue <= limits.min}
+                        title={`Jog ${axisName} -10°`}
+                      >
+                        ←←
+                      </button>
+                      <button 
+                        className="jog-btn-stacked jog-negative"
+                        onMouseDown={() => jogAxis(axisName, -1)}
+                        disabled={isMoving || currentValue <= limits.min}
+                        title={`Jog ${axisName} -1°`}
+                      >
+                        ←
+                      </button>
+                    </div>
+                    {/* Positive direction buttons */}
+                    <div className="jog-direction-group">
+                      <button 
+                        className="jog-btn-stacked jog-positive"
+                        onMouseDown={() => jogAxis(axisName, 1)}
+                        disabled={isMoving || currentValue >= limits.max}
+                        title={`Jog ${axisName} +1°`}
+                      >
+                        →
+                      </button>
+                      <button 
+                        className="jog-btn-stacked jog-positive"
+                        onMouseDown={() => jogAxis(axisName, 10)}
+                        disabled={isMoving || currentValue >= limits.max}
+                        title={`Jog ${axisName} +10°`}
+                      >
+                        →→
+                      </button>
+                      <button 
+                        className="jog-btn-stacked jog-positive"
+                        onMouseDown={() => jogAxis(axisName, 25)}
+                        disabled={isMoving || currentValue >= limits.max}
+                        title={`Jog ${axisName} +25°`}
+                      >
+                        →→→
+                      </button>
+                    </div>
                   </div>
                 </div>
                 <div className="dro-cell keys-cell">
@@ -338,52 +383,88 @@ const ManualControl: React.FC<ManualControlProps> = ({ config, socket }) => {
               </div>
             );
           })}
-        </div>
-      </div>
 
-      {/* Manipulator Control */}
-      <div className="manipulator-section">
-        <h3>Manipulator Control ({config.manipulators.count} manipulators)</h3>
-        <div className="manipulator-grid">
+          {/* Render Manipulators/Grippers */}
           {Array.from({ length: config.manipulators.count }, (_, i) => {
             const manipulatorName = `gripper${i + 1}`;
             const limits = config.manipulators[manipulatorName] || { min: 0, max: 100 };
             const currentValue = manipulatorValues[manipulatorName] || 0;
             
             return (
-              <div key={manipulatorName} className="manipulator-control">
-                <div className="manipulator-header">
-                  <span className="manipulator-label">GRIPPER {i + 1}</span>
+              <div key={manipulatorName} className="dro-row">
+                <div className="dro-cell type-cell">
+                  <span className="gripper-number">{i + 1}</span>
+                  <span className="gripper-name">GRIP</span>
                 </div>
-                <div className="dro-display-compact manipulator-dro">
-                  <span className="dro-value-compact">{currentValue.toFixed(1)}</span>
-                  <span className="dro-unit-compact">%</span>
+                <div className="dro-cell position-cell">
+                  <div className="dro-display-compact">
+                    <span className="dro-value-compact">{currentValue.toFixed(1)}</span>
+                    <span className="dro-unit-compact">%</span>
+                  </div>
                 </div>
-                <div className="dro-limits">
-                  {limits.min}% to {limits.max}%
+                <div className="dro-cell limits-cell">
+                  <span className="dro-limits-compact">{limits.min}% to {limits.max}%</span>
                 </div>
-                <div className="manipulator-buttons">
-                  <button 
-                    className="btn btn-secondary"
-                    onClick={() => handleManipulatorChange(manipulatorName, 0)}
-                    disabled={isMoving}
-                  >
-                    Open
-                  </button>
-                  <button 
-                    className="btn btn-secondary"
-                    onClick={() => handleManipulatorChange(manipulatorName, 50)}
-                    disabled={isMoving}
-                  >
-                    50%
-                  </button>
-                  <button 
-                    className="btn btn-secondary"
-                    onClick={() => handleManipulatorChange(manipulatorName, 100)}
-                    disabled={isMoving}
-                  >
-                    Close
-                  </button>
+                <div className="dro-cell jog-cell">
+                  <div className="jog-controls-stacked">
+                    {/* Negative direction buttons (close gripper) */}
+                    <div className="jog-direction-group">
+                      <button 
+                        className="jog-btn-stacked jog-negative"
+                        onMouseDown={() => jogManipulator(manipulatorName, -25)}
+                        disabled={isMoving || currentValue <= limits.min}
+                        title={`Close ${manipulatorName} -25%`}
+                      >
+                        ←←←
+                      </button>
+                      <button 
+                        className="jog-btn-stacked jog-negative"
+                        onMouseDown={() => jogManipulator(manipulatorName, -10)}
+                        disabled={isMoving || currentValue <= limits.min}
+                        title={`Close ${manipulatorName} -10%`}
+                      >
+                        ←←
+                      </button>
+                      <button 
+                        className="jog-btn-stacked jog-negative"
+                        onMouseDown={() => jogManipulator(manipulatorName, -5)}
+                        disabled={isMoving || currentValue <= limits.min}
+                        title={`Close ${manipulatorName} -5%`}
+                      >
+                        ←
+                      </button>
+                    </div>
+                    {/* Positive direction buttons (open gripper) */}
+                    <div className="jog-direction-group">
+                      <button 
+                        className="jog-btn-stacked jog-positive"
+                        onMouseDown={() => jogManipulator(manipulatorName, 5)}
+                        disabled={isMoving || currentValue >= limits.max}
+                        title={`Open ${manipulatorName} +5%`}
+                      >
+                        →
+                      </button>
+                      <button 
+                        className="jog-btn-stacked jog-positive"
+                        onMouseDown={() => jogManipulator(manipulatorName, 10)}
+                        disabled={isMoving || currentValue >= limits.max}
+                        title={`Open ${manipulatorName} +10%`}
+                      >
+                        →→
+                      </button>
+                      <button 
+                        className="jog-btn-stacked jog-positive"
+                        onMouseDown={() => jogManipulator(manipulatorName, 25)}
+                        disabled={isMoving || currentValue >= limits.max}
+                        title={`Open ${manipulatorName} +25%`}
+                      >
+                        →→→
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <div className="dro-cell keys-cell">
+                  <span className="keyboard-hint-compact">—</span>
                 </div>
               </div>
             );
