@@ -280,45 +280,60 @@ const ManualControl: React.FC<ManualControlProps> = ({ config, socket }) => {
         </div>
       </div>
       
-      {/* Axis Control with DRO and Jog Buttons */}
+      {/* Industrial-style DRO Display */}
       <div className="dro-section">
-        <h3>Digital Readout & Axis Control ({config.axes.count} axes)</h3>
-        <div className="dro-grid">
+        <h3>Digital Readout & Axis Control</h3>
+        <div className="dro-industrial-panel">
+          <div className="dro-header">
+            <div className="dro-header-cell">AXIS</div>
+            <div className="dro-header-cell">POSITION</div>
+            <div className="dro-header-cell">LIMITS</div>
+            <div className="dro-header-cell">JOG</div>
+            <div className="dro-header-cell">KEYS</div>
+          </div>
           {Array.from({ length: config.axes.count }, (_, i) => {
             const axisName = `axis${i + 1}`;
             const limits = config.axes.limits[axisName] || { min: -180, max: 180 };
             const currentValue = axisValues[axisName] || 0;
+            const keyHints = ['← →', '↑ ↓', 'PgUp/PgDn', 'Home/End', '', ''];
             
             return (
-              <div key={axisName} className="axis-dro">
-                <div className="axis-header">
-                  <span className="axis-label">AXIS {i + 1}</span>
-                  <span className="axis-keyboard-hint">
-                    {i === 0 ? '← →' : i === 1 ? '↑ ↓' : i === 2 ? 'PgUp/PgDn' : i === 3 ? 'Home/End' : ''}
-                  </span>
+              <div key={axisName} className="dro-row">
+                <div className="dro-cell axis-cell">
+                  <span className="axis-number">{i + 1}</span>
+                  <span className="axis-name">{['X', 'Y', 'Z', 'A', 'B', 'C'][i]}</span>
                 </div>
-                <div className="dro-display">
-                  <span className="dro-value">{currentValue.toFixed(3)}</span>
-                  <span className="dro-unit">°</span>
+                <div className="dro-cell position-cell">
+                  <div className="dro-display-compact">
+                    <span className="dro-value-compact">{currentValue.toFixed(3)}</span>
+                    <span className="dro-unit-compact">°</span>
+                  </div>
                 </div>
-                <div className="dro-limits">
-                  {limits.min}° to {limits.max}°
+                <div className="dro-cell limits-cell">
+                  <span className="dro-limits-compact">{limits.min}° to {limits.max}°</span>
                 </div>
-                <div className="jog-controls">
-                  <button 
-                    className="jog-btn jog-minus"
-                    onMouseDown={() => jogAxis(axisName, -jogSettings.stepSize)}
-                    disabled={isMoving || currentValue <= limits.min}
-                  >
-                    -
-                  </button>
-                  <button 
-                    className="jog-btn jog-plus"
-                    onMouseDown={() => jogAxis(axisName, jogSettings.stepSize)}
-                    disabled={isMoving || currentValue >= limits.max}
-                  >
-                    +
-                  </button>
+                <div className="dro-cell jog-cell">
+                  <div className="jog-controls-compact">
+                    <button 
+                      className="jog-btn-compact jog-minus-compact"
+                      onMouseDown={() => jogAxis(axisName, -jogSettings.stepSize)}
+                      disabled={isMoving || currentValue <= limits.min}
+                      title={`Jog ${axisName} negative`}
+                    >
+                      −
+                    </button>
+                    <button 
+                      className="jog-btn-compact jog-plus-compact"
+                      onMouseDown={() => jogAxis(axisName, jogSettings.stepSize)}
+                      disabled={isMoving || currentValue >= limits.max}
+                      title={`Jog ${axisName} positive`}
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+                <div className="dro-cell keys-cell">
+                  <span className="keyboard-hint-compact">{keyHints[i]}</span>
                 </div>
               </div>
             );
@@ -340,9 +355,9 @@ const ManualControl: React.FC<ManualControlProps> = ({ config, socket }) => {
                 <div className="manipulator-header">
                   <span className="manipulator-label">GRIPPER {i + 1}</span>
                 </div>
-                <div className="dro-display">
-                  <span className="dro-value">{currentValue.toFixed(1)}</span>
-                  <span className="dro-unit">%</span>
+                <div className="dro-display-compact manipulator-dro">
+                  <span className="dro-value-compact">{currentValue.toFixed(1)}</span>
+                  <span className="dro-unit-compact">%</span>
                 </div>
                 <div className="dro-limits">
                   {limits.min}% to {limits.max}%
