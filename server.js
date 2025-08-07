@@ -5,8 +5,14 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const path = require('path');
 const fs = require('fs-extra');
+
+// TODO: Uncomment these imports when lib/ directory with MKS hardware modules is available
+// const { MKS42DController, GCodeTranslator } = require('./lib/mks42d');
+// const MKS57DManager = require('./lib/mks57d-manager');
+
 const { MKS42DController, GCodeTranslator } = require('./lib/mks42d');
 const MKS57DManager = require('./lib/mks57d-manager');
+
 
 
 const app = express();
@@ -33,6 +39,7 @@ if (process.env.NODE_ENV === 'production') {
 // Configuration storage
 const CONFIG_FILE = path.join(__dirname, 'config', 'robot-config.json');
 const POSITIONS_FILE = path.join(__dirname, 'data', 'saved-positions.json');
+const GROUPS_FILE = path.join(__dirname, 'data', 'position-groups.json');
 
 // Ensure config and data directories exist
 fs.ensureDirSync(path.join(__dirname, 'config'));
@@ -103,9 +110,32 @@ if (fs.existsSync(POSITIONS_FILE)) {
 }
 
 
+// Load position groups
+let positionGroups = [];
+if (fs.existsSync(GROUPS_FILE)) {
+  try {
+    positionGroups = fs.readJsonSync(GROUPS_FILE);
+  } catch (error) {
+    console.error('Error loading position groups:', error);
+    positionGroups = [];
+  }
+}
+
+
+
+// Initialize MKS42D controller
+// TODO: Uncomment when lib/ directory with MKS hardware modules is available  
+let mks42d = null;
+let gcodeTranslator = null;
+
+/* 
+// Uncomment when lib/ modules are available:
+
+
 // Initialize MKS42D controller
 let mks42d = null;
 let gcodeTranslator = null;
+
 
 if (robotConfig.mks42d && robotConfig.mks42d.enabled) {
   try {
@@ -160,9 +190,15 @@ if (robotConfig.mks42d && robotConfig.mks42d.enabled) {
   }
 }
 
+*/
+
 
 // Initialize MKS57D Manager
+// TODO: Uncomment when lib/ directory with MKS hardware modules is available
 let mks57dManager = null;
+
+/* 
+// Uncomment when lib/ modules are available:
 
 async function initializeMKS57D() {
   if (robotConfig.communicationProtocol === 'can') {
@@ -191,6 +227,9 @@ if (robotConfig.communicationProtocol === 'can') {
   initializeMKS57D();
 }
 
+*/
+
+
 
 // API Routes
 app.get('/api/config', (req, res) => {
@@ -204,6 +243,7 @@ app.post('/api/config', async (req, res) => {
     robotConfig = { ...robotConfig, ...req.body };
     fs.writeJsonSync(CONFIG_FILE, robotConfig, { spaces: 2 });
     
+
     // Reinitialize MKS42D if config changed
     const mks42dConfigChanged = JSON.stringify(oldConfig.mks42d) !== JSON.stringify(robotConfig.mks42d);
     const canConfigChanged = JSON.stringify(oldConfig.canConfig) !== JSON.stringify(robotConfig.canConfig);
@@ -234,10 +274,12 @@ app.post('/api/config', async (req, res) => {
         
       } catch (error) {
         console.error('Error reinitializing MKS42D:', error);
+9
+      }
+    }
 
-    const oldProtocol = robotConfig.communicationProtocol;
-    robotConfig = { ...robotConfig, ...req.body };
-    fs.writeJsonSync(CONFIG_FILE, robotConfig, { spaces: 2 });
+    const oldProtocol = oldConfig.communicationProtocol;
+
     
     // Reinitialize MKS57D manager if communication protocol changed to CAN
     if (oldProtocol !== robotConfig.communicationProtocol) {
@@ -251,6 +293,8 @@ app.post('/api/config', async (req, res) => {
 
       }
     }
+    */
+    
     
     res.json({ success: true, config: robotConfig });
     
@@ -320,12 +364,82 @@ app.post('/api/positions', async (req, res) => {
       axes: currentAxes,
       manipulators: currentManipulators,
       delay: req.body.delay || 0,
+      groupId: req.body.groupId || null,
       timestamp: new Date().toISOString()
     };
     
     savedPositions.push(newPosition);
     fs.writeJsonSync(POSITIONS_FILE, savedPositions, { spaces: 2 });
     res.json({ success: true, position: newPosition });
+    
+    // Broadcast position update to all clients
+    io.emit('positionsUpdated', savedPositions);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Edit position endpoint
+app.put('/api/positions/:id', (req, res) => {
+  try {
+    const positionId = parseInt(req.params.id);
+    const positionIndex = savedPositions.findIndex(pos => pos.id === positionId);
+    
+    if (positionIndex === -1) {
+      return res.status(404).json({ success: false, error: 'Position not found' });
+    }
+    
+    // Update position with new data
+    const updatedPosition = {
+      ...savedPositions[positionIndex],
+      ...req.body,
+      id: positionId, // Ensure ID doesn't change
+      timestamp: new Date().toISOString()
+    };
+    
+    savedPositions[positionIndex] = updatedPosition;
+    fs.writeJsonSync(POSITIONS_FILE, savedPositions, { spaces: 2 });
+    
+    res.json({ success: true, position: updatedPosition });
+    
+    // Broadcast position update to all clients
+    io.emit('positionsUpdated', savedPositions);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Reorder positions endpoint
+app.post('/api/positions/reorder', (req, res) => {
+  try {
+    const { orderedIds } = req.body;
+    
+    if (!Array.isArray(orderedIds)) {
+      return res.status(400).json({ success: false, error: 'orderedIds must be an array' });
+    }
+    
+    // Reorder savedPositions based on the provided order
+    const reorderedPositions = [];
+    
+    // First add positions in the specified order
+    for (const id of orderedIds) {
+      const position = savedPositions.find(pos => pos.id === parseInt(id));
+      if (position) {
+        reorderedPositions.push(position);
+      }
+    }
+    
+    // Then add any positions not in the ordered list (shouldn't happen, but safety check)
+    for (const position of savedPositions) {
+      if (!orderedIds.includes(position.id.toString())) {
+        reorderedPositions.push(position);
+      }
+    }
+    
+    savedPositions = reorderedPositions;
+    fs.writeJsonSync(POSITIONS_FILE, savedPositions, { spaces: 2 });
+    
+    res.json({ success: true });
     
     // Broadcast position update to all clients
     io.emit('positionsUpdated', savedPositions);
@@ -347,6 +461,137 @@ app.delete('/api/positions/:id', (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 });
+
+
+// Group management endpoints
+app.get('/api/groups', (req, res) => {
+  res.json(positionGroups);
+});
+
+app.post('/api/groups', (req, res) => {
+  try {
+    const newGroup = {
+      id: Date.now(),
+      name: req.body.name,
+      description: req.body.description || '',
+      timestamp: new Date().toISOString()
+    };
+    
+    positionGroups.push(newGroup);
+    fs.writeJsonSync(GROUPS_FILE, positionGroups, { spaces: 2 });
+    
+    res.json({ success: true, group: newGroup });
+    
+    // Broadcast groups update to all clients
+    io.emit('groupsUpdated', positionGroups);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.put('/api/groups/:id', (req, res) => {
+  try {
+    const groupId = parseInt(req.params.id);
+    const groupIndex = positionGroups.findIndex(group => group.id === groupId);
+    
+    if (groupIndex === -1) {
+      return res.status(404).json({ success: false, error: 'Group not found' });
+    }
+    
+    const updatedGroup = {
+      ...positionGroups[groupIndex],
+      ...req.body,
+      id: groupId, // Ensure ID doesn't change
+      timestamp: new Date().toISOString()
+    };
+    
+    positionGroups[groupIndex] = updatedGroup;
+    fs.writeJsonSync(GROUPS_FILE, positionGroups, { spaces: 2 });
+    
+    res.json({ success: true, group: updatedGroup });
+    
+    // Broadcast groups update to all clients
+    io.emit('groupsUpdated', positionGroups);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.delete('/api/groups/:id', (req, res) => {
+  try {
+    const groupId = parseInt(req.params.id);
+    
+    // Remove the group
+    positionGroups = positionGroups.filter(group => group.id !== groupId);
+    fs.writeJsonSync(GROUPS_FILE, positionGroups, { spaces: 2 });
+    
+    // Remove group assignment from positions
+    savedPositions = savedPositions.map(pos => ({
+      ...pos,
+      groupId: pos.groupId === groupId ? null : pos.groupId
+    }));
+    fs.writeJsonSync(POSITIONS_FILE, savedPositions, { spaces: 2 });
+    
+    res.json({ success: true });
+    
+    // Broadcast updates to all clients
+    io.emit('groupsUpdated', positionGroups);
+    io.emit('positionsUpdated', savedPositions);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Assign position to group
+app.post('/api/groups/:groupId/positions/:positionId', (req, res) => {
+  try {
+    const groupId = parseInt(req.params.groupId);
+    const positionId = parseInt(req.params.positionId);
+    
+    // Find the position
+    const position = savedPositions.find(pos => pos.id === positionId);
+    if (!position) {
+      return res.status(404).json({ success: false, error: 'Position not found' });
+    }
+    
+    // Find the group
+    const group = positionGroups.find(g => g.id === groupId);
+    if (!group) {
+      return res.status(404).json({ success: false, error: 'Group not found' });
+    }
+    
+    // Update position's group assignment
+    position.groupId = groupId;
+    fs.writeJsonSync(POSITIONS_FILE, savedPositions, { spaces: 2 });
+    
+    res.json({ success: true });
+    
+    // Broadcast positions update to all clients
+    io.emit('positionsUpdated', savedPositions);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Remove position from group
+app.delete('/api/groups/:groupId/positions/:positionId', (req, res) => {
+  try {
+    const positionId = parseInt(req.params.positionId);
+    
+    // Find the position
+    const position = savedPositions.find(pos => pos.id === positionId);
+    if (!position) {
+      return res.status(404).json({ success: false, error: 'Position not found' });
+    }
+    
+    // Remove group assignment
+    position.groupId = null;
+    fs.writeJsonSync(POSITIONS_FILE, savedPositions, { spaces: 2 });
+    
+    res.json({ success: true });
+    
+    // Broadcast positions update to all clients
+    io.emit('positionsUpdated', savedPositions);
 
 // Get current positions endpoint  
 app.get('/api/positions/current', async (req, res) => {
@@ -371,6 +616,7 @@ app.get('/api/positions/current', async (req, res) => {
     }
     
     res.json({ success: true, positions: currentPositions });
+
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -381,30 +627,6 @@ app.post('/api/gcode/execute', async (req, res) => {
   try {
     const { gcode } = req.body;
     console.log('Executing G-code:', gcode);
-    
-
-    if (gcodeTranslator && mks42d && robotConfig.mks42d.enabled) {
-      // Use MKS42D controllers for actual G-code execution
-      res.json({ success: true, message: 'G-code execution started' });
-      io.emit('gcodeStatus', { status: 'executing', progress: 0 });
-      
-      try {
-        const results = await gcodeTranslator.executeGCode(gcode, (progress) => {
-          io.emit('gcodeStatus', { status: 'executing', progress });
-        });
-        
-        io.emit('gcodeStatus', { status: 'completed', progress: 100, results });
-      } catch (error) {
-        console.error('G-code execution error:', error);
-        io.emit('gcodeStatus', { status: 'error', error: error.message });
-      }
-    } else {
-      // Fallback to simulation mode
-      res.json({ success: true, message: 'G-code execution started (simulation)' });
-      io.emit('gcodeStatus', { status: 'executing', progress: 0 });
-      
-      // Simulate execution progress
-
     res.json({ success: true, message: 'G-code execution started' });
     io.emit('gcodeStatus', { status: 'executing', progress: 0 });
     
@@ -439,7 +661,6 @@ app.post('/api/gcode/execute', async (req, res) => {
       }
     } else {
       // Fallback simulation when no MKS57D manager available
-
       let progress = 0;
       const interval = setInterval(() => {
         progress += 10;
@@ -447,8 +668,6 @@ app.post('/api/gcode/execute', async (req, res) => {
         
         if (progress >= 100) {
           clearInterval(interval);
-
-          io.emit('gcodeStatus', { status: 'completed', progress: 100, mode: 'simulation' });
 
           io.emit('gcodeStatus', { status: 'completed', progress: 100 });
 
@@ -581,6 +800,7 @@ app.post('/api/home', async (req, res) => {
       res.json({ success: true, mode: 'simulation' });
     }
 
+
     // Use MKS57D manager if available and axis is specified
     if (mks57dManager && axis && value !== undefined) {
       try {
@@ -668,6 +888,36 @@ app.post('/api/home', async (req, res) => {
   }
 });
 
+// Home all controllers endpoint
+app.post('/api/home', async (req, res) => {
+  try {
+    console.log('Homing all controllers');
+    
+    let results = {};
+    
+    // Use MKS57D manager if available
+    if (mks57dManager) {
+      try {
+        results = await mks57dManager.homeAll();
+        console.log('MKS57D home results:', results);
+      } catch (error) {
+        console.error('MKS57D home error:', error);
+        return res.status(500).json({ success: false, error: error.message });
+      }
+    } else {
+      // Fallback when no MKS57D manager available
+      console.log('No MKS57D manager available, simulating home command');
+      results = { simulated: true };
+    }
+    
+    // Broadcast home command to all clients
+    io.emit('homeCommand', { timestamp: Date.now(), results });
+    res.json({ success: true, results });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Position replay endpoint
 app.post('/api/replay/:id', async (req, res) => {
   try {
@@ -679,6 +929,7 @@ app.post('/api/replay/:id', async (req, res) => {
     }
     
     console.log('Replaying position:', position.name);
+
 
     if (mks42d && robotConfig.mks42d.enabled) {
       // Use MKS42D controllers for actual position replay
@@ -745,6 +996,7 @@ app.post('/api/replay/:id', async (req, res) => {
       // Fallback to simulation mode
       io.emit('replayStatus', { status: 'starting', position: position.name });
 
+
     io.emit('replayStatus', { status: 'starting', position: position.name });
     
     // Use MKS57D manager if available
@@ -767,7 +1019,11 @@ app.post('/api/replay/:id', async (req, res) => {
         timestamp: Date.now()
       });
 
-      
+      io.emit('replayStatus', { status: 'completed', position: position.name });
+    }, position.delay || 1000);
+    
+    res.json({ success: true });
+
       setTimeout(() => {
         io.emit('robotMovement', {
           axes: position.axes,
@@ -783,6 +1039,7 @@ app.post('/api/replay/:id', async (req, res) => {
       
       res.json({ success: true, mode: 'simulation' });
     }
+
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -792,9 +1049,10 @@ app.post('/api/replay/:id', async (req, res) => {
 io.on('connection', (socket) => {
   console.log('Client connected:', socket.id);
   
-  // Send current configuration and positions to new client
+  // Send current configuration, positions, and groups to new client
   socket.emit('configUpdated', robotConfig);
   socket.emit('positionsUpdated', savedPositions);
+  socket.emit('groupsUpdated', positionGroups);
   
   socket.on('disconnect', () => {
     console.log('Client disconnected:', socket.id);
