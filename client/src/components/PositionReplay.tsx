@@ -88,7 +88,7 @@ const PositionReplay: React.FC<PositionReplayProps> = ({
 
   const selectAllPositions = () => {
     if (!positions || positions.length === 0) return;
-    
+
     if (selectedPositions.length === positions.length) {
       setSelectedPositions([]);
     } else {
@@ -98,7 +98,7 @@ const PositionReplay: React.FC<PositionReplayProps> = ({
 
   const selectGroupPositions = (groupId: number | null) => {
     if (!positions) return;
-    
+
     const groupPositions = positions.filter((p) => p.groupId === groupId);
     const groupPositionIds = groupPositions.map((p) => p.id);
 
@@ -617,21 +617,23 @@ const PositionReplay: React.FC<PositionReplayProps> = ({
                 <div className="position-values">
                   <div className="axes-display">
                     <strong>Axes:</strong>
-                    {position.axes && Object.entries(position.axes).map(([axis, value]) => (
-                      <span key={axis} className="axis-value">
-                        {axis}: {value}°
-                      </span>
-                    ))}
+                    {position.axes &&
+                      Object.entries(position.axes).map(([axis, value]) => (
+                        <span key={axis} className="axis-value">
+                          {axis}: {value}°
+                        </span>
+                      ))}
                   </div>
                   <div className="manipulators-display">
                     <strong>Manipulators:</strong>
-                    {position.manipulators && Object.entries(position.manipulators).map(
-                      ([manipulator, value]) => (
-                        <span key={manipulator} className="manipulator-value">
-                          {manipulator}: {value}%
-                        </span>
-                      )
-                    )}
+                    {position.manipulators &&
+                      Object.entries(position.manipulators).map(
+                        ([manipulator, value]) => (
+                          <span key={manipulator} className="manipulator-value">
+                            {manipulator}: {value}%
+                          </span>
+                        )
+                      )}
                   </div>
                 </div>
 
