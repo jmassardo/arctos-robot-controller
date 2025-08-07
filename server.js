@@ -17,8 +17,11 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: "*", // Allow all origins for development
+    origin: process.env.NODE_ENV === "production" 
+      ? false // Will be served from same origin in production
+      : ["http://localhost:3000", "http://localhost:3001", "http://127.0.0.1:3000"], // Allow React dev server origins
     methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
     credentials: false,
   },
   allowEIO3: true, // Allow Engine.IO v3 compatibility
@@ -30,8 +33,11 @@ const PORT = process.env.PORT || 5000;
 // Middleware
 app.use(
   cors({
-    origin: "*", // Allow all origins for development
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    origin: process.env.NODE_ENV === "production" 
+      ? false // Will be served from same origin in production
+      : ["http://localhost:3000", "http://localhost:3001", "http://127.0.0.1:3000"], // Allow React dev server origins
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
     credentials: false,
   })
 );
