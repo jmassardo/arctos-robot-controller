@@ -5,7 +5,7 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const path = require('path');
 const fs = require('fs-extra');
-// Hardware libraries from main branch - commented out for merge compatibility
+// TODO: Uncomment these imports when lib/ directory with MKS hardware modules is available
 // const { MKS42DController, GCodeTranslator } = require('./lib/mks42d');
 // const MKS57DManager = require('./lib/mks57d-manager');
 
@@ -116,11 +116,14 @@ if (fs.existsSync(GROUPS_FILE)) {
 }
 
 
-// Initialize MKS42D controller - commented out for merge compatibility
+
+// Initialize MKS42D controller
+// TODO: Uncomment when lib/ directory with MKS hardware modules is available  
 let mks42d = null;
 let gcodeTranslator = null;
 
-/*
+/* 
+// Uncomment when lib/ modules are available:
 if (robotConfig.mks42d && robotConfig.mks42d.enabled) {
   try {
     mks42d = new MKS42DController({
@@ -176,10 +179,12 @@ if (robotConfig.mks42d && robotConfig.mks42d.enabled) {
 */
 
 
-// Initialize MKS57D Manager - commented out for merge compatibility
+// Initialize MKS57D Manager
+// TODO: Uncomment when lib/ directory with MKS hardware modules is available
 let mks57dManager = null;
 
-/*
+/* 
+// Uncomment when lib/ modules are available:
 async function initializeMKS57D() {
   if (robotConfig.communicationProtocol === 'can') {
     try {
@@ -221,7 +226,7 @@ app.post('/api/config', async (req, res) => {
     robotConfig = { ...robotConfig, ...req.body };
     fs.writeJsonSync(CONFIG_FILE, robotConfig, { spaces: 2 });
     
-    /* Hardware reinitialization commented out for merge compatibility
+    /* TODO: Uncomment when lib/ hardware modules are available
     // Reinitialize MKS42D if config changed
     const mks42dConfigChanged = JSON.stringify(oldConfig.mks42d) !== JSON.stringify(robotConfig.mks42d);
     const canConfigChanged = JSON.stringify(oldConfig.canConfig) !== JSON.stringify(robotConfig.canConfig);
@@ -255,7 +260,7 @@ app.post('/api/config', async (req, res) => {
       }
     }
 
-    const oldProtocol = robotConfig.communicationProtocol;
+    const oldProtocol = oldConfig.communicationProtocol;
     
     // Reinitialize MKS57D manager if communication protocol changed to CAN
     if (oldProtocol !== robotConfig.communicationProtocol) {
@@ -269,6 +274,7 @@ app.post('/api/config', async (req, res) => {
       }
     }
     */
+    
     
     res.json({ success: true, config: robotConfig });
     
