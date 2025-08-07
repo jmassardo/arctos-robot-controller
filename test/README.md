@@ -12,6 +12,9 @@ npm test
 ## Test Files
 
 - `basic.test.js` - Basic smoke tests to ensure the server and configuration are valid
+- `mks57d.test.js` - MKS57D library functionality tests (class instantiation, conversion methods, G-code parsing)
+- `mks42d.test.js` - MKS42D library functionality tests (controller operations, G-code translation, error handling)
+- `server-api.test.js` - Server configuration and API structure validation tests
 
 ## Adding New Tests
 
