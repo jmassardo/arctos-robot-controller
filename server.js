@@ -334,8 +334,26 @@ app.post("/api/positions", async (req, res) => {
     let currentAxes = req.body.axes;
     let currentManipulators = req.body.manipulators;
 
-    // If no positions provided, get current positions from controllers
-    if (!currentAxes && mks42d && robotConfig.mks42d.enabled) {
+    // If no axes/manipulators provided, try to construct from individual values
+    if (!currentAxes && !currentManipulators) {
+      // Handle individual axis values sent by client
+      currentAxes = {};
+      currentManipulators = {};
+      
+      // Map individual axis values to axes object
+      if (req.body.x !== undefined) currentAxes.X = req.body.x;
+      if (req.body.y !== undefined) currentAxes.Y = req.body.y;
+      if (req.body.z !== undefined) currentAxes.Z = req.body.z;
+      if (req.body.a !== undefined) currentAxes.A = req.body.a;
+      if (req.body.b !== undefined) currentAxes.B = req.body.b;
+      if (req.body.c !== undefined) currentAxes.C = req.body.c;
+      
+      // Map manipulator values
+      if (req.body.gripper !== undefined) currentManipulators.gripper1 = req.body.gripper;
+    }
+
+    // If still no positions, try to get from controllers
+    if ((!currentAxes || Object.keys(currentAxes).length === 0) && mks42d && robotConfig.mks42d.enabled) {
       try {
         const controllerPositions = await mks42d.getAllPositions();
         // Convert controller positions to axes format
@@ -351,9 +369,9 @@ app.post("/api/positions", async (req, res) => {
             e: 0,
           };
 
-          if (controller.axes.includes("X")) currentAxes.axis1 = pos.x;
-          if (controller.axes.includes("Y")) currentAxes.axis2 = pos.y;
-          if (controller.axes.includes("Z")) currentAxes.axis3 = pos.z;
+          if (controller.axes.includes("X")) currentAxes.X = pos.x;
+          if (controller.axes.includes("Y")) currentAxes.Y = pos.y;
+          if (controller.axes.includes("Z")) currentAxes.Z = pos.z;
           if (controller.type === "gripper")
             currentManipulators.gripper1 = pos.e;
         }
@@ -362,11 +380,13 @@ app.post("/api/positions", async (req, res) => {
           "Failed to get current positions from controllers:",
           error
         );
-        // Fall back to provided values or defaults
-        currentAxes = req.body.axes || {};
-        currentManipulators = req.body.manipulators || {};
+        // Keep the values we already have
       }
     }
+
+    // Ensure we have at least empty objects
+    if (!currentAxes) currentAxes = {};
+    if (!currentManipulators) currentManipulators = {};
 
     const newPosition = {
       id: Date.now(),
