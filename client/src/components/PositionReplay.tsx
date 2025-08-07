@@ -128,7 +128,14 @@ interface PositionReplayProps {
 interface ReplayStatus {
   status: 'idle' | 'starting' | 'running' | 'completed';
   position?: string;
+  currentPositionIndex?: number;
+  totalPositions?: number;
+  currentLoop?: number;
+  totalLoops?: number;
+  step?: string;
+  timestamp?: number;
 }
+
 
 interface Position {
   id: number;
@@ -149,11 +156,24 @@ interface PositionGroup {
 }
 
 const PositionReplay: React.FC<PositionReplayProps> = ({ positions, groups, socket, config }) => {
+
+interface ProgressLogEntry {
+  id: number;
+  timestamp: number;
+  message: string;
+  type: 'info' | 'success' | 'warning' | 'error';
+}
+
+type ReplayMode = 'once' | 'count' | 'infinite';
+
+const PositionReplay: React.FC<PositionReplayProps> = ({ positions, socket, config }) => {
+
   const [selectedPositions, setSelectedPositions] = useState<number[]>([]);
   const [isReplaying, setIsReplaying] = useState(false);
   const [replayStatus, setReplayStatus] = useState<ReplayStatus>({ status: 'idle' });
   const [sequenceDelay, setSequenceDelay] = useState(1000);
   const [loopCount, setLoopCount] = useState(1);
+
   
   // New state for editing features
   const [showAddForm, setShowAddForm] = useState(false);
@@ -182,13 +202,44 @@ const PositionReplay: React.FC<PositionReplayProps> = ({ positions, groups, sock
     })
   );
 
+  const [replayMode, setReplayMode] = useState<ReplayMode>('once');
+  const [shouldStop, setShouldStop] = useState(false);
+  const [progressLog, setProgressLog] = useState<ProgressLogEntry[]>([]);
+
+  const addProgressLogEntry = (message: string, type: 'info' | 'success' | 'warning' | 'error' = 'info') => {
+    const entry: ProgressLogEntry = {
+      id: Date.now() + Math.random(),
+      timestamp: Date.now(),
+      message,
+      type
+    };
+    setProgressLog(prev => [...prev, entry]);
+  };
+
+  const clearProgressLog = () => {
+    setProgressLog([]);
+  };
+
+
   useEffect(() => {
     if (socket) {
       socket.on('replayStatus', (status: ReplayStatus) => {
         setReplayStatus(status);
         
+        // Add progress log entries based on status updates
+        if (status.step) {
+          addProgressLogEntry(status.step, 'info');
+        }
+        
         if (status.status === 'completed') {
           setIsReplaying(false);
+          addProgressLogEntry('Position replay completed successfully', 'success');
+        }
+        
+        if (status.status === 'starting') {
+          if (status.position) {
+            addProgressLogEntry(`Starting replay of position: ${status.position}`, 'info');
+          }
         }
       });
     }
@@ -217,51 +268,120 @@ const PositionReplay: React.FC<PositionReplayProps> = ({ positions, groups, sock
     }
 
     setIsReplaying(true);
+    setShouldStop(false);
     setReplayStatus({ status: 'starting' });
+    clearProgressLog();
+    
+    addProgressLogEntry(`Starting sequence replay: ${selectedPositions.length} positions, ${loopCount} loops`, 'info');
 
     try {
-      for (let loop = 0; loop < loopCount; loop++) {
+      const maxLoops = replayMode === 'once' ? 1 : (replayMode === 'count' ? loopCount : Infinity);
+      let loop = 0;
+      
+      while ((replayMode === 'infinite' || loop < maxLoops) && !shouldStop) {
         for (const positionId of selectedPositions) {
+          if (shouldStop) break;
+      for (let loop = 0; loop < loopCount; loop++) {
+        addProgressLogEntry(`Starting loop ${loop + 1} of ${loopCount}`, 'info');
+        
+        for (let posIndex = 0; posIndex < selectedPositions.length; posIndex++) {
+          const positionId = selectedPositions[posIndex];
+          const position = positions.find(p => p.id === positionId);
+          
+          if (!position) {
+            addProgressLogEntry(`Error: Position with ID ${positionId} not found`, 'error');
+            continue;
+          }
+
+          // Update status with detailed progress
+          setReplayStatus({
+            status: 'running',
+            position: position.name,
+            currentPositionIndex: posIndex + 1,
+            totalPositions: selectedPositions.length,
+            currentLoop: loop + 1,
+            totalLoops: loopCount,
+            step: `Executing position ${posIndex + 1}/${selectedPositions.length} in loop ${loop + 1}/${loopCount}`,
+            timestamp: Date.now()
+          });
+
+          addProgressLogEntry(`Executing position: ${position.name} (${posIndex + 1}/${selectedPositions.length})`, 'info');
+          
           const response = await axios.post(`/api/replay/${positionId}`);
           
           if (!response.data.success) {
             throw new Error(response.data.error);
           }
 
+          addProgressLogEntry(`Position ${position.name} executed successfully`, 'success');
+
           // Wait for the position to complete plus sequence delay
-          const position = positions.find(p => p.id === positionId);
           const totalDelay = (position?.delay || 0) + sequenceDelay;
           
-          await new Promise(resolve => setTimeout(resolve, totalDelay));
+          if (totalDelay > 0) {
+            addProgressLogEntry(`Waiting ${totalDelay}ms before next step...`, 'info');
+            await new Promise(resolve => setTimeout(resolve, totalDelay));
+          }
         }
+        loop++;
+        
+        if (shouldStop) break;
       }
       
-      setReplayStatus({ status: 'completed' });
+      setReplayStatus({ status: shouldStop ? 'idle' : 'completed' });
+        
+        addProgressLogEntry(`Loop ${loop + 1} completed`, 'success');
+      }
+      
+      setReplayStatus({ 
+        status: 'completed',
+        step: 'All positions completed successfully',
+        timestamp: Date.now()
+      });
+      addProgressLogEntry('Sequence replay completed successfully!', 'success');
     } catch (error) {
       console.error('Error during replay:', error);
-      alert('Error during position replay');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error during position replay';
+      addProgressLogEntry(`Error: ${errorMessage}`, 'error');
       setReplayStatus({ status: 'idle' });
+      alert('Error during position replay');
     } finally {
       setIsReplaying(false);
+      setShouldStop(false);
     }
   };
 
+  const stopReplay = () => {
+    setShouldStop(true);
+  };
+
   const replaySinglePosition = async (positionId: number) => {
+    const position = positions.find(p => p.id === positionId);
+    if (!position) {
+      addProgressLogEntry(`Error: Position with ID ${positionId} not found`, 'error');
+      return;
+    }
+
     setIsReplaying(true);
+    clearProgressLog();
+    addProgressLogEntry(`Starting single position replay: ${position.name}`, 'info');
     
     try {
       const response = await axios.post(`/api/replay/${positionId}`);
       
       if (response.data.success) {
-        const position = positions.find(p => p.id === positionId);
+        addProgressLogEntry(`Position ${position.name} executed successfully`, 'success');
         setTimeout(() => {
           setIsReplaying(false);
+          addProgressLogEntry('Single position replay completed', 'success');
         }, position?.delay || 1000);
       } else {
         throw new Error(response.data.error);
       }
     } catch (error) {
       console.error('Error replaying position:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      addProgressLogEntry(`Error: ${errorMessage}`, 'error');
       alert('Error replaying position');
       setIsReplaying(false);
     }
@@ -700,18 +820,62 @@ const PositionReplay: React.FC<PositionReplayProps> = ({ positions, groups, sock
           </div>
 
           <div className="form-group">
-            <label htmlFor="loopCount">Number of Loops:</label>
-            <input
-              type="number"
-              id="loopCount"
-              className="form-control"
-              value={loopCount}
-              onChange={(e) => setLoopCount(parseInt(e.target.value))}
-              min="1"
-              max="100"
-              disabled={isReplaying}
-            />
+            <label>Replay Mode:</label>
+            <div style={{ marginTop: '8px' }}>
+              <label style={{ display: 'block', marginBottom: '5px' }}>
+                <input
+                  type="radio"
+                  name="replayMode"
+                  value="once"
+                  checked={replayMode === 'once'}
+                  onChange={(e) => setReplayMode(e.target.value as ReplayMode)}
+                  disabled={isReplaying}
+                  style={{ marginRight: '8px' }}
+                />
+                Run once
+              </label>
+              <label style={{ display: 'block', marginBottom: '5px' }}>
+                <input
+                  type="radio"
+                  name="replayMode"
+                  value="count"
+                  checked={replayMode === 'count'}
+                  onChange={(e) => setReplayMode(e.target.value as ReplayMode)}
+                  disabled={isReplaying}
+                  style={{ marginRight: '8px' }}
+                />
+                Run specific count
+              </label>
+              <label style={{ display: 'block', marginBottom: '5px' }}>
+                <input
+                  type="radio"
+                  name="replayMode"
+                  value="infinite"
+                  checked={replayMode === 'infinite'}
+                  onChange={(e) => setReplayMode(e.target.value as ReplayMode)}
+                  disabled={isReplaying}
+                  style={{ marginRight: '8px' }}
+                />
+                Run indefinitely until stopped
+              </label>
+            </div>
           </div>
+
+          {replayMode === 'count' && (
+            <div className="form-group">
+              <label htmlFor="loopCount">Number of Loops:</label>
+              <input
+                type="number"
+                id="loopCount"
+                className="form-control"
+                value={loopCount}
+                onChange={(e) => setLoopCount(parseInt(e.target.value))}
+                min="1"
+                max="100"
+                disabled={isReplaying}
+              />
+            </div>
+          )}
 
           <div className="button-group">
             <button 
@@ -721,6 +885,15 @@ const PositionReplay: React.FC<PositionReplayProps> = ({ positions, groups, sock
             >
               {isReplaying ? 'Replaying...' : `Replay Selected (${selectedPositions.length})`}
             </button>
+            
+            {isReplaying && replayMode === 'infinite' && (
+              <button 
+                className="btn btn-warning" 
+                onClick={stopReplay}
+              >
+                Stop Replay
+              </button>
+            )}
             
             <button 
               className="btn btn-secondary" 
@@ -747,7 +920,89 @@ const PositionReplay: React.FC<PositionReplayProps> = ({ positions, groups, sock
             }`}>
               {replayStatus.status.toUpperCase()}
               {replayStatus.position && ` - ${replayStatus.position}`}
+              {replayStatus.currentPositionIndex && replayStatus.totalPositions && (
+                <div style={{ fontSize: '12px', marginTop: '5px' }}>
+                  Position {replayStatus.currentPositionIndex}/{replayStatus.totalPositions}
+                  {replayStatus.currentLoop && replayStatus.totalLoops && (
+                    `, Loop ${replayStatus.currentLoop}/${replayStatus.totalLoops}`
+                  )}
+                </div>
+              )}
             </div>
+          </div>
+        </div>
+
+        <div className="control-section">
+          <h3>Progress Log</h3>
+          
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+            <div style={{ fontSize: '14px', color: '#666' }}>
+              {progressLog.length} entries
+            </div>
+            <button 
+              className="btn btn-sm btn-secondary" 
+              onClick={clearProgressLog}
+              disabled={isReplaying}
+            >
+              Clear Log
+            </button>
+          </div>
+          
+          <div 
+            style={{ 
+              maxHeight: '300px', 
+              overflowY: 'auto', 
+              border: '1px solid #e9ecef', 
+              borderRadius: '4px',
+              backgroundColor: '#f8f9fa',
+              padding: '10px'
+            }}
+          >
+            {progressLog.length === 0 ? (
+              <div style={{ textAlign: 'center', color: '#999', padding: '20px' }}>
+                No progress entries yet. Start a replay to see detailed logs.
+              </div>
+            ) : (
+              <div>
+                {progressLog.map((entry) => (
+                  <div 
+                    key={entry.id} 
+                    style={{ 
+                      display: 'flex', 
+                      alignItems: 'flex-start',
+                      marginBottom: '8px',
+                      padding: '5px',
+                      borderRadius: '3px',
+                      backgroundColor: entry.type === 'error' ? '#ffeaea' : 
+                                    entry.type === 'success' ? '#eafaf1' :
+                                    entry.type === 'warning' ? '#fff3cd' : '#ffffff',
+                      borderLeft: `3px solid ${
+                        entry.type === 'error' ? '#dc3545' :
+                        entry.type === 'success' ? '#28a745' :
+                        entry.type === 'warning' ? '#ffc107' : '#007bff'
+                      }`
+                    }}
+                  >
+                    <div style={{ 
+                      fontSize: '11px', 
+                      color: '#666', 
+                      minWidth: '60px',
+                      marginRight: '10px',
+                      fontFamily: 'monospace'
+                    }}>
+                      {new Date(entry.timestamp).toLocaleTimeString()}
+                    </div>
+                    <div style={{ 
+                      flex: 1,
+                      fontSize: '13px',
+                      color: entry.type === 'error' ? '#721c24' : '#333'
+                    }}>
+                      {entry.message}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -779,15 +1034,25 @@ const PositionReplay: React.FC<PositionReplayProps> = ({ positions, groups, sock
             <div>
               <h4>Estimated Time</h4>
               <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#6c757d' }}>
-                {selectedPositions.length > 0 ? 
+                {replayMode === 'infinite' ? '∞' :
+                  selectedPositions.length > 0 ? 
                   `${Math.round((selectedPositions.reduce((total, id) => {
                     const pos = positions.find(p => p.id === id);
                     return total + (pos?.delay || 0) + sequenceDelay;
-                  }, 0) * loopCount) / 1000)}s` : 
+                  }, 0) * (replayMode === 'once' ? 1 : loopCount)) / 1000)}s` : 
                   '0s'
                 }
               </div>
             </div>
+
+            
+            <div>
+              <h4>Total Loops</h4>
+              <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#ffc107' }}>
+                {replayMode === 'once' ? '1' : replayMode === 'infinite' ? '∞' : loopCount}
+              </div>
+            </div>
+
           </div>
         </div>
       </div>

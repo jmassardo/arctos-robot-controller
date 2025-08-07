@@ -5,9 +5,14 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const path = require('path');
 const fs = require('fs-extra');
+
 // TODO: Uncomment these imports when lib/ directory with MKS hardware modules is available
 // const { MKS42DController, GCodeTranslator } = require('./lib/mks42d');
 // const MKS57DManager = require('./lib/mks57d-manager');
+
+const { MKS42DController, GCodeTranslator } = require('./lib/mks42d');
+const MKS57DManager = require('./lib/mks57d-manager');
+
 
 
 const app = express();
@@ -104,6 +109,7 @@ if (fs.existsSync(POSITIONS_FILE)) {
   }
 }
 
+
 // Load position groups
 let positionGroups = [];
 if (fs.existsSync(GROUPS_FILE)) {
@@ -124,6 +130,13 @@ let gcodeTranslator = null;
 
 /* 
 // Uncomment when lib/ modules are available:
+
+
+// Initialize MKS42D controller
+let mks42d = null;
+let gcodeTranslator = null;
+
+
 if (robotConfig.mks42d && robotConfig.mks42d.enabled) {
   try {
     mks42d = new MKS42DController({
@@ -176,6 +189,7 @@ if (robotConfig.mks42d && robotConfig.mks42d.enabled) {
     console.error('Error initializing MKS42D:', error);
   }
 }
+
 */
 
 
@@ -185,6 +199,7 @@ let mks57dManager = null;
 
 /* 
 // Uncomment when lib/ modules are available:
+
 async function initializeMKS57D() {
   if (robotConfig.communicationProtocol === 'can') {
     try {
@@ -211,7 +226,9 @@ async function initializeMKS57D() {
 if (robotConfig.communicationProtocol === 'can') {
   initializeMKS57D();
 }
+
 */
+
 
 
 // API Routes
@@ -226,7 +243,7 @@ app.post('/api/config', async (req, res) => {
     robotConfig = { ...robotConfig, ...req.body };
     fs.writeJsonSync(CONFIG_FILE, robotConfig, { spaces: 2 });
     
-    /* TODO: Uncomment when lib/ hardware modules are available
+
     // Reinitialize MKS42D if config changed
     const mks42dConfigChanged = JSON.stringify(oldConfig.mks42d) !== JSON.stringify(robotConfig.mks42d);
     const canConfigChanged = JSON.stringify(oldConfig.canConfig) !== JSON.stringify(robotConfig.canConfig);
@@ -257,10 +274,12 @@ app.post('/api/config', async (req, res) => {
         
       } catch (error) {
         console.error('Error reinitializing MKS42D:', error);
+9
       }
     }
 
     const oldProtocol = oldConfig.communicationProtocol;
+
     
     // Reinitialize MKS57D manager if communication protocol changed to CAN
     if (oldProtocol !== robotConfig.communicationProtocol) {
@@ -271,6 +290,7 @@ app.post('/api/config', async (req, res) => {
       
       if (robotConfig.communicationProtocol === 'can') {
         await initializeMKS57D();
+
       }
     }
     */
@@ -442,6 +462,7 @@ app.delete('/api/positions/:id', (req, res) => {
   }
 });
 
+
 // Group management endpoints
 app.get('/api/groups', (req, res) => {
   res.json(positionGroups);
@@ -571,6 +592,31 @@ app.delete('/api/groups/:groupId/positions/:positionId', (req, res) => {
     
     // Broadcast positions update to all clients
     io.emit('positionsUpdated', savedPositions);
+
+// Get current positions endpoint  
+app.get('/api/positions/current', async (req, res) => {
+  try {
+    let currentPositions = {};
+    
+    // Get current positions from MKS57D manager if available
+    if (mks57dManager) {
+      try {
+        currentPositions = await mks57dManager.getAllPositions();
+        console.log('Retrieved current positions from MKS57D controllers');
+      } catch (error) {
+        console.error('Failed to get current positions:', error);
+        currentPositions = { error: 'Failed to read from controllers' };
+      }
+    } else {
+      // Fallback - return default/last known positions
+      currentPositions = {
+        axis1: 0, axis2: 0, axis3: 0, axis4: 0, axis5: 0, axis6: 0,
+        note: 'No MKS57D manager available - returning default positions'
+      };
+    }
+    
+    res.json({ success: true, positions: currentPositions });
+
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -581,7 +627,6 @@ app.post('/api/gcode/execute', async (req, res) => {
   try {
     const { gcode } = req.body;
     console.log('Executing G-code:', gcode);
-    
     res.json({ success: true, message: 'G-code execution started' });
     io.emit('gcodeStatus', { status: 'executing', progress: 0 });
     
@@ -623,7 +668,9 @@ app.post('/api/gcode/execute', async (req, res) => {
         
         if (progress >= 100) {
           clearInterval(interval);
+
           io.emit('gcodeStatus', { status: 'completed', progress: 100 });
+
         }
       }, 500);
     }
@@ -639,6 +686,121 @@ app.post('/api/manual/move', async (req, res) => {
     const { axis, value, manipulator } = req.body;
     console.log('Manual movement:', { axis, value, manipulator });
     
+
+    if (mks42d && robotConfig.mks42d.enabled) {
+      // Use MKS42D controllers for actual hardware communication
+      if (axis) {
+        // Find controllers that handle this axis
+        const controllerIds = mks42d.controllers
+          .filter(c => c.axes.includes(axis.toUpperCase()))
+          .map(c => c.id);
+          
+        if (controllerIds.length > 0) {
+          // Convert axis letter to number
+          const axisNumber = { 'X': 0, 'Y': 1, 'Z': 2, 'E': 3 }[axis.toUpperCase()] || 0;
+          
+          // Send move command to all relevant controllers
+          const results = [];
+          for (const controllerId of controllerIds) {
+            try {
+              await mks42d.moveAbsolute(controllerId, axisNumber, value, 1000);
+              results.push({ controllerId, success: true });
+            } catch (error) {
+              results.push({ controllerId, success: false, error: error.message });
+            }
+          }
+          
+          io.emit('robotMovement', { 
+            axis, 
+            value, 
+            controllers: controllerIds, 
+            results,
+            timestamp: Date.now() 
+          });
+          
+          res.json({ success: true, controllers: controllerIds, results });
+        } else {
+          res.json({ success: false, error: `No controllers configured for axis ${axis}` });
+        }
+      } else if (manipulator) {
+        // Handle manipulator movement (gripper)
+        const gripperControllers = mks42d.controllers.filter(c => c.type === 'gripper');
+        
+        if (gripperControllers.length > 0) {
+          const results = [];
+          for (const controller of gripperControllers) {
+            try {
+              await mks42d.moveAbsolute(controller.id, 3, value, 500); // E-axis for gripper
+              results.push({ controllerId: controller.id, success: true });
+            } catch (error) {
+              results.push({ controllerId: controller.id, success: false, error: error.message });
+            }
+          }
+          
+          io.emit('robotMovement', { 
+            manipulator, 
+            value, 
+            controllers: gripperControllers.map(c => c.id),
+            results,
+            timestamp: Date.now() 
+          });
+          
+          res.json({ success: true, controllers: gripperControllers.map(c => c.id), results });
+        } else {
+          res.json({ success: false, error: 'No gripper controllers configured' });
+        }
+      }
+    } else {
+      // Fallback to simulation mode
+      io.emit('robotMovement', { axis, value, manipulator, timestamp: Date.now() });
+      res.json({ success: true, mode: 'simulation' });
+    }
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Home endpoint
+app.post('/api/home', async (req, res) => {
+  try {
+    const { axes } = req.body; // Optional: specific axes to home
+    console.log('Homing requested:', axes || 'all axes');
+    
+    if (mks42d && robotConfig.mks42d.enabled) {
+      let controllerIds = [];
+      
+      if (axes && axes.length > 0) {
+        // Home specific axes
+        axes.forEach(axis => {
+          const axisControllers = mks42d.controllers
+            .filter(c => c.axes.includes(axis.toUpperCase()))
+            .map(c => c.id);
+          controllerIds.push(...axisControllers);
+        });
+        // Remove duplicates
+        controllerIds = [...new Set(controllerIds)];
+      } else {
+        // Home all controllers
+        controllerIds = mks42d.controllers.map(c => c.id);
+      }
+      
+      if (controllerIds.length > 0) {
+        const results = await mks42d.goHome(controllerIds);
+        io.emit('homeStatus', { status: 'started', controllers: controllerIds });
+        res.json({ success: true, controllers: controllerIds, results });
+      } else {
+        res.json({ success: false, error: 'No controllers found for specified axes' });
+      }
+    } else {
+      // Fallback to simulation
+      io.emit('homeStatus', { status: 'started', mode: 'simulation' });
+      setTimeout(() => {
+        io.emit('homeStatus', { status: 'completed', mode: 'simulation' });
+      }, 2000);
+      res.json({ success: true, mode: 'simulation' });
+    }
+
+
     // Use MKS57D manager if available and axis is specified
     if (mks57dManager && axis && value !== undefined) {
       try {
@@ -654,6 +816,7 @@ app.post('/api/manual/move', async (req, res) => {
     // Always broadcast the movement to all clients for UI updates
     io.emit('robotMovement', { axis, value, manipulator, timestamp: Date.now() });
     res.json({ success: true });
+
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -664,6 +827,18 @@ app.post('/api/emergency-stop', async (req, res) => {
   try {
     console.log('Emergency stop triggered!');
     
+
+    if (mks42d && robotConfig.mks42d.enabled) {
+      // Use MKS42D controllers for actual emergency stop
+      const results = await mks42d.stop();
+      io.emit('emergencyStop', { timestamp: Date.now(), results });
+      res.json({ success: true, message: 'Emergency stop activated', results });
+    } else {
+      // Fallback to simulation
+      io.emit('emergencyStop', { timestamp: Date.now(), mode: 'simulation' });
+      res.json({ success: true, message: 'Emergency stop activated (simulation)' });
+    }
+
     // Use MKS57D manager if available
     if (mks57dManager) {
       try {
@@ -677,6 +852,37 @@ app.post('/api/emergency-stop', async (req, res) => {
     // Broadcast emergency stop to all clients
     io.emit('emergencyStop', { timestamp: Date.now() });
     res.json({ success: true, message: 'Emergency stop activated' });
+
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Home all controllers endpoint
+app.post('/api/home', async (req, res) => {
+  try {
+    console.log('Homing all controllers');
+    
+    let results = {};
+    
+    // Use MKS57D manager if available
+    if (mks57dManager) {
+      try {
+        results = await mks57dManager.homeAll();
+        console.log('MKS57D home results:', results);
+      } catch (error) {
+        console.error('MKS57D home error:', error);
+        return res.status(500).json({ success: false, error: error.message });
+      }
+    } else {
+      // Fallback when no MKS57D manager available
+      console.log('No MKS57D manager available, simulating home command');
+      results = { simulated: true };
+    }
+    
+    // Broadcast home command to all clients
+    io.emit('homeCommand', { timestamp: Date.now(), results });
+    res.json({ success: true, results });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -723,7 +929,74 @@ app.post('/api/replay/:id', async (req, res) => {
     }
     
     console.log('Replaying position:', position.name);
-    
+
+
+    if (mks42d && robotConfig.mks42d.enabled) {
+      // Use MKS42D controllers for actual position replay
+      io.emit('replayStatus', { status: 'starting', position: position.name });
+      
+      try {
+        // Move each axis to its saved position
+        const results = [];
+        
+        for (const [axis, value] of Object.entries(position.axes)) {
+          const axisUpper = axis.toUpperCase();
+          const controllerIds = mks42d.controllers
+            .filter(c => c.axes.includes(axisUpper))
+            .map(c => c.id);
+            
+          if (controllerIds.length > 0) {
+            const axisNumber = { 'X': 0, 'Y': 1, 'Z': 2, 'E': 3 }[axisUpper] || 0;
+            
+            for (const controllerId of controllerIds) {
+              try {
+                await mks42d.moveAbsolute(controllerId, axisNumber, value, 1000);
+                results.push({ axis, controllerId, success: true });
+              } catch (error) {
+                results.push({ axis, controllerId, success: false, error: error.message });
+              }
+            }
+          }
+        }
+        
+        // Handle manipulators
+        for (const [manipulator, value] of Object.entries(position.manipulators)) {
+          const gripperControllers = mks42d.controllers.filter(c => c.type === 'gripper');
+          
+          for (const controller of gripperControllers) {
+            try {
+              await mks42d.moveAbsolute(controller.id, 3, value, 500);
+              results.push({ manipulator, controllerId: controller.id, success: true });
+            } catch (error) {
+              results.push({ manipulator, controllerId: controller.id, success: false, error: error.message });
+            }
+          }
+        }
+        
+        // Wait for position delay
+        if (position.delay) {
+          await new Promise(resolve => setTimeout(resolve, position.delay));
+        }
+        
+        io.emit('robotMovement', {
+          axes: position.axes,
+          manipulators: position.manipulators,
+          timestamp: Date.now(),
+          results
+        });
+        
+        io.emit('replayStatus', { status: 'completed', position: position.name, results });
+        res.json({ success: true, results });
+        
+      } catch (error) {
+        io.emit('replayStatus', { status: 'error', position: position.name, error: error.message });
+        res.status(500).json({ success: false, error: error.message });
+      }
+    } else {
+      // Fallback to simulation mode
+      io.emit('replayStatus', { status: 'starting', position: position.name });
+
+
     io.emit('replayStatus', { status: 'starting', position: position.name });
     
     // Use MKS57D manager if available
@@ -745,11 +1018,28 @@ app.post('/api/replay/:id', async (req, res) => {
         manipulators: position.manipulators,
         timestamp: Date.now()
       });
-      
+
       io.emit('replayStatus', { status: 'completed', position: position.name });
     }, position.delay || 1000);
     
     res.json({ success: true });
+
+      setTimeout(() => {
+        io.emit('robotMovement', {
+          axes: position.axes,
+          manipulators: position.manipulators,
+          timestamp: Date.now(),
+          mode: 'simulation'
+        });
+        
+        setTimeout(() => {
+          io.emit('replayStatus', { status: 'completed', position: position.name, mode: 'simulation' });
+        }, position.delay || 1000);
+      }, 500);
+      
+      res.json({ success: true, mode: 'simulation' });
+    }
+
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
