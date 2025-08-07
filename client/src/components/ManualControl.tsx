@@ -329,7 +329,7 @@ const ManualControl: React.FC<ManualControlProps> = ({ config, socket }) => {
                         disabled={isMoving || currentValue <= limits.min}
                         title={`Jog ${axisName} -25°`}
                       >
-                        ←←←
+                        ⬅⬅⬅
                       </button>
                       <button 
                         className="jog-btn-stacked jog-negative"
@@ -337,7 +337,7 @@ const ManualControl: React.FC<ManualControlProps> = ({ config, socket }) => {
                         disabled={isMoving || currentValue <= limits.min}
                         title={`Jog ${axisName} -10°`}
                       >
-                        ←←
+                        ⬅⬅
                       </button>
                       <button 
                         className="jog-btn-stacked jog-negative"
@@ -345,7 +345,7 @@ const ManualControl: React.FC<ManualControlProps> = ({ config, socket }) => {
                         disabled={isMoving || currentValue <= limits.min}
                         title={`Jog ${axisName} -1°`}
                       >
-                        ←
+                        ⬅
                       </button>
                     </div>
                     {/* Positive direction buttons */}
@@ -356,7 +356,7 @@ const ManualControl: React.FC<ManualControlProps> = ({ config, socket }) => {
                         disabled={isMoving || currentValue >= limits.max}
                         title={`Jog ${axisName} +1°`}
                       >
-                        →
+                        ➡
                       </button>
                       <button 
                         className="jog-btn-stacked jog-positive"
@@ -364,7 +364,7 @@ const ManualControl: React.FC<ManualControlProps> = ({ config, socket }) => {
                         disabled={isMoving || currentValue >= limits.max}
                         title={`Jog ${axisName} +10°`}
                       >
-                        →→
+                        ➡➡
                       </button>
                       <button 
                         className="jog-btn-stacked jog-positive"
@@ -372,7 +372,7 @@ const ManualControl: React.FC<ManualControlProps> = ({ config, socket }) => {
                         disabled={isMoving || currentValue >= limits.max}
                         title={`Jog ${axisName} +25°`}
                       >
-                        →→→
+                        ➡➡➡
                       </button>
                     </div>
                   </div>
@@ -415,7 +415,7 @@ const ManualControl: React.FC<ManualControlProps> = ({ config, socket }) => {
                         disabled={isMoving || currentValue <= limits.min}
                         title={`Close ${manipulatorName} -25%`}
                       >
-                        ←←←
+                        ⬅⬅⬅
                       </button>
                       <button 
                         className="jog-btn-stacked jog-negative"
@@ -423,7 +423,7 @@ const ManualControl: React.FC<ManualControlProps> = ({ config, socket }) => {
                         disabled={isMoving || currentValue <= limits.min}
                         title={`Close ${manipulatorName} -10%`}
                       >
-                        ←←
+                        ⬅⬅
                       </button>
                       <button 
                         className="jog-btn-stacked jog-negative"
@@ -431,7 +431,7 @@ const ManualControl: React.FC<ManualControlProps> = ({ config, socket }) => {
                         disabled={isMoving || currentValue <= limits.min}
                         title={`Close ${manipulatorName} -5%`}
                       >
-                        ←
+                        ⬅
                       </button>
                     </div>
                     {/* Positive direction buttons (open gripper) */}
@@ -442,7 +442,7 @@ const ManualControl: React.FC<ManualControlProps> = ({ config, socket }) => {
                         disabled={isMoving || currentValue >= limits.max}
                         title={`Open ${manipulatorName} +5%`}
                       >
-                        →
+                        ➡
                       </button>
                       <button 
                         className="jog-btn-stacked jog-positive"
@@ -450,7 +450,7 @@ const ManualControl: React.FC<ManualControlProps> = ({ config, socket }) => {
                         disabled={isMoving || currentValue >= limits.max}
                         title={`Open ${manipulatorName} +10%`}
                       >
-                        →→
+                        ➡➡
                       </button>
                       <button 
                         className="jog-btn-stacked jog-positive"
@@ -458,7 +458,7 @@ const ManualControl: React.FC<ManualControlProps> = ({ config, socket }) => {
                         disabled={isMoving || currentValue >= limits.max}
                         title={`Open ${manipulatorName} +25%`}
                       >
-                        →→→
+                        ➡➡➡
                       </button>
                     </div>
                   </div>
