@@ -36,8 +36,8 @@ interface ProgressLogEntry {
 type ReplayMode = "once" | "count" | "infinite";
 
 const PositionReplay: React.FC<PositionReplayProps> = ({
-  positions,
-  groups,
+  positions = [],
+  groups = [],
   socket,
   config,
 }) => {
@@ -87,6 +87,8 @@ const PositionReplay: React.FC<PositionReplayProps> = ({
   };
 
   const selectAllPositions = () => {
+    if (!positions || positions.length === 0) return;
+    
     if (selectedPositions.length === positions.length) {
       setSelectedPositions([]);
     } else {
@@ -95,6 +97,8 @@ const PositionReplay: React.FC<PositionReplayProps> = ({
   };
 
   const selectGroupPositions = (groupId: number | null) => {
+    if (!positions) return;
+    
     const groupPositions = positions.filter((p) => p.groupId === groupId);
     const groupPositionIds = groupPositions.map((p) => p.id);
 
@@ -366,12 +370,14 @@ const PositionReplay: React.FC<PositionReplayProps> = ({
   }, [socket, addProgressLogEntry]);
 
   // Group positions by group
-  const groupedPositions = groups.reduce((acc, group) => {
-    acc[group.id] = positions.filter((p) => p.groupId === group.id);
+  const groupedPositions = (groups || []).reduce((acc, group) => {
+    if (positions && group) {
+      acc[group.id] = positions.filter((p) => p && p.groupId === group.id);
+    }
     return acc;
   }, {} as { [groupId: number]: Position[] });
 
-  const ungroupedPositions = positions.filter((p) => !p.groupId);
+  const ungroupedPositions = (positions || []).filter((p) => p && !p.groupId);
 
   return (
     <div className="position-replay">
@@ -611,7 +617,7 @@ const PositionReplay: React.FC<PositionReplayProps> = ({
                 <div className="position-values">
                   <div className="axes-display">
                     <strong>Axes:</strong>
-                    {Object.entries(position.axes).map(([axis, value]) => (
+                    {position.axes && Object.entries(position.axes).map(([axis, value]) => (
                       <span key={axis} className="axis-value">
                         {axis}: {value}°
                       </span>
@@ -619,7 +625,7 @@ const PositionReplay: React.FC<PositionReplayProps> = ({
                   </div>
                   <div className="manipulators-display">
                     <strong>Manipulators:</strong>
-                    {Object.entries(position.manipulators).map(
+                    {position.manipulators && Object.entries(position.manipulators).map(
                       ([manipulator, value]) => (
                         <span key={manipulator} className="manipulator-value">
                           {manipulator}: {value}%
@@ -670,7 +676,7 @@ const PositionReplay: React.FC<PositionReplayProps> = ({
       )}
 
       {/* Empty State */}
-      {positions.length === 0 && (
+      {positions && positions.length === 0 && (
         <div className="empty-state">
           <p>No saved positions found.</p>
           <p>Use the Manual Control tab to save positions first.</p>

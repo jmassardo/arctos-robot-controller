@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router } from 'react-router-dom';
-import io, { Socket } from 'socket.io-client';
-import axios from 'axios';
+import React, { useState, useEffect } from "react";
+import { BrowserRouter as Router } from "react-router-dom";
+import io, { Socket } from "socket.io-client";
+import axios from "axios";
 
-import ManualControl from './components/ManualControl';
-import GCodeControl from './components/GCodeControl';
-import PositionReplay from './components/PositionReplay';
-import Configuration from './components/Configuration';
+import ManualControl from "./components/ManualControl";
+import GCodeControl from "./components/GCodeControl";
+import PositionReplay from "./components/PositionReplay";
+import Configuration from "./components/Configuration";
 
 interface RobotConfig {
   robotType: string;
@@ -50,40 +50,45 @@ interface PositionGroup {
   timestamp: string;
 }
 
-type TabType = 'manual' | 'gcode' | 'replay' | 'config';
+type TabType = "manual" | "gcode" | "replay" | "config";
 
 const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<TabType>('manual');
+  const [activeTab, setActiveTab] = useState<TabType>("manual");
   const [socket, setSocket] = useState<Socket | null>(null);
   const [config, setConfig] = useState<RobotConfig | null>(null);
   const [positions, setPositions] = useState<SavedPosition[]>([]);
   const [groups, setGroups] = useState<PositionGroup[]>([]);
-  const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected'>('disconnected');
+  const [connectionStatus, setConnectionStatus] = useState<
+    "connected" | "disconnected"
+  >("disconnected");
 
   useEffect(() => {
     // Initialize socket connection
-    const socketConnection = io('http://localhost:5000');
+    const socketConnection = io("http://localhost:5000", {
+      transports: ["polling", "websocket"],
+      timeout: 20000,
+    });
     setSocket(socketConnection);
 
-    socketConnection.on('connect', () => {
-      console.log('Connected to server');
-      setConnectionStatus('connected');
+    socketConnection.on("connect", () => {
+      console.log("Connected to server");
+      setConnectionStatus("connected");
     });
 
-    socketConnection.on('disconnect', () => {
-      console.log('Disconnected from server');
-      setConnectionStatus('disconnected');
+    socketConnection.on("disconnect", () => {
+      console.log("Disconnected from server");
+      setConnectionStatus("disconnected");
     });
 
-    socketConnection.on('configUpdated', (newConfig: RobotConfig) => {
+    socketConnection.on("configUpdated", (newConfig: RobotConfig) => {
       setConfig(newConfig);
     });
 
-    socketConnection.on('positionsUpdated', (newPositions: SavedPosition[]) => {
+    socketConnection.on("positionsUpdated", (newPositions: SavedPosition[]) => {
       setPositions(newPositions);
     });
 
-    socketConnection.on('groupsUpdated', (newGroups: PositionGroup[]) => {
+    socketConnection.on("groupsUpdated", (newGroups: PositionGroup[]) => {
       setGroups(newGroups);
     });
 
@@ -99,48 +104,51 @@ const App: React.FC = () => {
 
   const loadConfig = async () => {
     try {
-      const response = await axios.get('/api/config');
+      const response = await axios.get("/api/config");
       setConfig(response.data);
     } catch (error) {
-      console.error('Error loading config:', error);
+      console.error("Error loading config:", error);
     }
   };
 
   const loadPositions = async () => {
     try {
-      const response = await axios.get('/api/positions');
+      const response = await axios.get("/api/positions");
       setPositions(response.data);
     } catch (error) {
-      console.error('Error loading positions:', error);
+      console.error("Error loading positions:", error);
     }
   };
 
   const loadGroups = async () => {
     try {
-      const response = await axios.get('/api/groups');
+      const response = await axios.get("/api/groups");
       setGroups(response.data);
     } catch (error) {
-      console.error('Error loading groups:', error);
+      console.error("Error loading groups:", error);
     }
   };
 
   const renderTabContent = () => {
     if (!config) {
-      return (
-        <div className="alert alert-info">
-          Loading configuration...
-        </div>
-      );
+      return <div className="alert alert-info">Loading configuration...</div>;
     }
 
     switch (activeTab) {
-      case 'manual':
+      case "manual":
         return <ManualControl config={config} socket={socket} />;
-      case 'gcode':
+      case "gcode":
         return <GCodeControl socket={socket} />;
-      case 'replay':
-        return <PositionReplay positions={positions} groups={groups} socket={socket} config={config} />;
-      case 'config':
+      case "replay":
+        return (
+          <PositionReplay
+            positions={positions}
+            groups={groups}
+            socket={socket}
+            config={config}
+          />
+        );
+      case "config":
         return <Configuration config={config} onConfigUpdate={setConfig} />;
       default:
         return null;
@@ -150,45 +158,49 @@ const App: React.FC = () => {
   return (
     <Router>
       <div className="container">
-        <header style={{ marginBottom: '30px', textAlign: 'center' }}>
-          <h1 style={{ color: '#333', marginBottom: '10px' }}>
+        <header style={{ marginBottom: "30px", textAlign: "center" }}>
+          <h1 style={{ color: "#333", marginBottom: "10px" }}>
             Arctos Robot Controller
           </h1>
-          <div className={`status-indicator ${connectionStatus === 'connected' ? 'status-connected' : 'status-disconnected'}`}>
-            {connectionStatus === 'connected' ? 'Connected' : 'Disconnected'}
+          <div
+            className={`status-indicator ${
+              connectionStatus === "connected"
+                ? "status-connected"
+                : "status-disconnected"
+            }`}
+          >
+            {connectionStatus === "connected" ? "Connected" : "Disconnected"}
           </div>
         </header>
 
         <nav className="nav-tabs">
           <button
-            className={`nav-tab ${activeTab === 'manual' ? 'active' : ''}`}
-            onClick={() => setActiveTab('manual')}
+            className={`nav-tab ${activeTab === "manual" ? "active" : ""}`}
+            onClick={() => setActiveTab("manual")}
           >
             Manual Control
           </button>
           <button
-            className={`nav-tab ${activeTab === 'gcode' ? 'active' : ''}`}
-            onClick={() => setActiveTab('gcode')}
+            className={`nav-tab ${activeTab === "gcode" ? "active" : ""}`}
+            onClick={() => setActiveTab("gcode")}
           >
             G-Code Control
           </button>
           <button
-            className={`nav-tab ${activeTab === 'replay' ? 'active' : ''}`}
-            onClick={() => setActiveTab('replay')}
+            className={`nav-tab ${activeTab === "replay" ? "active" : ""}`}
+            onClick={() => setActiveTab("replay")}
           >
             Position Replay
           </button>
           <button
-            className={`nav-tab ${activeTab === 'config' ? 'active' : ''}`}
-            onClick={() => setActiveTab('config')}
+            className={`nav-tab ${activeTab === "config" ? "active" : ""}`}
+            onClick={() => setActiveTab("config")}
           >
             Configuration
           </button>
         </nav>
 
-        <main className="tab-content">
-          {renderTabContent()}
-        </main>
+        <main className="tab-content">{renderTabContent()}</main>
       </div>
     </Router>
   );
