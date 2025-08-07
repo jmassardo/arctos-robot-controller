@@ -598,42 +598,46 @@ const PositionReplay: React.FC<PositionReplayProps> = ({
           <div className="positions-grid">
             {ungroupedPositions.map((position) => (
               <div key={position.id} className="position-item">
-                <input
-                  type="checkbox"
-                  checked={selectedPositions.includes(position.id)}
-                  onChange={() => selectPosition(position.id)}
-                  disabled={isReplaying}
-                />
-                <div className="position-info">
-                  <span className="position-name">{position.name}</span>
-                  <span className="position-timestamp">
-                    {new Date(position.timestamp).toLocaleString()}
-                  </span>
-                  <span className="position-delay">
-                    {position.delay > 0 && `Delay: ${position.delay}ms`}
-                  </span>
+                <div className="position-header">
+                  <input
+                    type="checkbox"
+                    checked={selectedPositions.includes(position.id)}
+                    onChange={() => selectPosition(position.id)}
+                    disabled={isReplaying}
+                  />
+                  <div className="position-info">
+                    <span className="position-name">{position.name}</span>
+                    <span className="position-timestamp">
+                      Saved: {new Date(position.timestamp).toLocaleString()}
+                      {position.delay > 0 && ` | Delay: ${position.delay}ms`}
+                      {position.axes && ` | Axes: ${Object.keys(position.axes).length}`}
+                      {position.manipulators && ` | Manipulators: ${Object.keys(position.manipulators).length}`}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="position-values">
                   <div className="axes-display">
                     <strong>Axes:</strong>
-                    {position.axes &&
+                    {position.axes && Object.keys(position.axes).length > 0 ?
                       Object.entries(position.axes).map(([axis, value]) => (
                         <span key={axis} className="axis-value">
                           {axis}: {value}°
                         </span>
-                      ))}
+                      )) : <span className="no-data">No axes data</span>
+                    }
                   </div>
                   <div className="manipulators-display">
                     <strong>Manipulators:</strong>
-                    {position.manipulators &&
+                    {position.manipulators && Object.keys(position.manipulators).length > 0 ?
                       Object.entries(position.manipulators).map(
                         ([manipulator, value]) => (
                           <span key={manipulator} className="manipulator-value">
                             {manipulator}: {value}%
                           </span>
                         )
-                      )}
+                      ) : <span className="no-data">No manipulator data</span>
+                    }
                   </div>
                 </div>
 
