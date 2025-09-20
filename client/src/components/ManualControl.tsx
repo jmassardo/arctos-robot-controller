@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { Socket } from "socket.io-client";
+import InlineHelp from "./InlineHelp";
 
 interface RobotConfig {
   robotType: string;
@@ -181,7 +182,10 @@ const ManualControl: React.FC<ManualControlProps> = ({ config, socket }) => {
       </div>
 
       <div className="control-section">
-        <h3>Jog Distance</h3>
+        <h3>
+          Jog Distance
+          <InlineHelp topic="jog-controls" position="right" size="small" />
+        </h3>
         <div className="jog-distance">
           <label>
             Distance:
@@ -239,7 +243,10 @@ const ManualControl: React.FC<ManualControlProps> = ({ config, socket }) => {
       </div>
 
       <div className="control-section">
-        <h3>Save Position</h3>
+        <h3>
+          Save Position
+          <InlineHelp topic="position-saving" position="right" size="small" />
+        </h3>
         <div className="save-position">
           <input
             type="text"

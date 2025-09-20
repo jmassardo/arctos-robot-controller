@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { Socket } from 'socket.io-client';
 import axios from 'axios';
+import InlineHelp from './InlineHelp';
 
 interface GCodeControlProps {
   socket: Socket | null;
 }
 
 interface GCodeStatus {
-  status: 'idle' | 'executing' | 'completed' | 'error';
+  status: 'idle' | 'executing' | 'completed' | 'error' | 'stopping' | 'stopped';
   progress: number;
   message?: string;
+  error?: string;
 }
 
 const GCodeControl: React.FC<GCodeControlProps> = ({ socket }) => {
@@ -106,11 +108,19 @@ M2 ; End program`;
     setGcodeInput(historicalGCode);
   };
 
-  const stopExecution = () => {
-    // TODO: Implement stop functionality
+  const stopExecution = async () => {
     console.log('Stop execution requested');
     setIsExecuting(false);
-    setStatus({ status: 'idle', progress: 0 });
+    setStatus({ status: 'stopping', progress: 0 });
+    
+    try {
+      // Send stop command to server
+      await axios.post('/api/gcode/stop');
+      setStatus({ status: 'stopped', progress: 0 });
+    } catch (error) {
+      console.error('Error stopping G-code execution:', error);
+      setStatus({ status: 'error', progress: 0, error: 'Failed to stop execution' });
+    }
   };
 
   return (
@@ -120,7 +130,10 @@ M2 ; End program`;
 
       <div className="control-grid">
         <div className="control-section">
-          <h3>G-Code Editor</h3>
+          <h3>
+            G-Code Editor
+            <InlineHelp topic="gcode-basics" position="right" size="small" />
+          </h3>
           
           <div className="form-group">
             <label htmlFor="gcodeInput">G-Code Commands:</label>

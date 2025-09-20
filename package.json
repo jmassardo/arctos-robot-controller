@@ -1,16 +1,24 @@
 {
   "name": "arctos-robot-controller",
   "version": "1.0.0",
-  "description": "Web-based graphical interface to control multi-axis robotic arms",
-  "main": "server.js",
+  "description": "Desktop application for controlling multi-axis robotic arms",
+  "main": "electron/main.js",
+  "homepage": "./",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
     "build": "cd client && npm run build",
     "install-client": "cd client && npm install",
-    "heroku-postbuild": "npm run install-client && npm run build",
-    "lint": "eslint server.js --fix",
-    "test": "node --test test/*.test.js"
+    "electron": "npm run build && electron .",
+    "electron-dev": "concurrently \"npm run dev\" \"wait-on http://localhost:5000 && electron .\"",
+    "electron-build": "npm run build && electron-builder",
+    "dist": "npm run build && electron-builder --publish=never",
+    "dist-all": "npm run build && electron-builder -mwl --publish=never",
+    "lint": "eslint server.js electron/*.js --fix",
+    "test": "node --test test/*.test.js",
+    "test:frontend": "cd client && npm test -- --passWithNoTests --watchAll=false",
+    "test:e2e": "npx playwright test",
+    "test:all": "npm test && npm run test:frontend && npm run test:e2e"
   },
   "keywords": [
     "robotics",
@@ -23,16 +31,67 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "bcryptjs": "^2.4.3",
     "body-parser": "^1.20.2",
     "cors": "^2.8.5",
     "express": "^4.18.2",
+    "express-rate-limit": "^7.1.5",
+    "express-validator": "^7.0.1",
     "fs-extra": "^11.1.1",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "qrcode": "^1.5.4",
+    "sequelize": "^6.37.7",
     "serialport": "^12.0.0",
     "socket.io": "^4.7.2",
+    "speakeasy": "^2.0.0",
+    "sqlite3": "^5.1.7",
+    "winston": "^3.11.0"
+  },
+  "optionalDependencies": {
     "socketcan": "^4.0.6"
   },
   "devDependencies": {
+    "@playwright/test": "^1.55.0",
+    "concurrently": "^8.2.2",
+    "electron": "^27.0.0",
+    "electron-builder": "^24.6.4",
+    "eslint": "^8.57.0",
     "nodemon": "^3.0.1",
-    "eslint": "^8.57.0"
+    "socket.io-client": "^4.7.2",
+    "wait-on": "^7.0.1"
+  },
+  "build": {
+    "appId": "com.arctos.robot-controller",
+    "productName": "Arctos Robot Controller",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron/**/*",
+      "server.js",
+      "client/build/**/*",
+      "config/**/*",
+      "data/**/*",
+      "lib/**/*",
+      "node_modules/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "icon": "assets/icon.icns",
+      "category": "public.app-category.productivity"
+    },
+    "win": {
+      "icon": "assets/icon.ico",
+      "target": "nsis"
+    },
+    "linux": {
+      "icon": "assets/icon.png",
+      "category": "Development"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
   }
 }
