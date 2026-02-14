@@ -1,0 +1,102 @@
+{
+  "type": "robot_security_penetration_test",
+  "summary": {
+    "totalTests": 4,
+    "passedTests": 4,
+    "failedTests": 0,
+    "robotSecurityScore": 100,
+    "safetyRiskLevel": "LOW",
+    "vulnerabilities": {
+      "total": 0,
+      "critical": 0,
+      "high": 0,
+      "medium": 0,
+      "low": 0
+    }
+  },
+  "testResults": [
+    {
+      "test": "Emergency Stop - Unauthenticated Access",
+      "passed": true,
+      "details": {
+        "message": "Unauthenticated emergency stop blocked",
+        "severity": "low",
+        "cvss": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:N/I:H/A:H/E:P",
+        "description": "Emergency stop should require authentication to prevent unauthorized system shutdowns"
+      },
+      "timestamp": "2025-09-21T10:59:51.378Z"
+    },
+    {
+      "test": "Emergency Stop - Command Injection Protection",
+      "passed": true,
+      "details": {
+        "message": "Command injection in emergency stop blocked",
+        "severity": "low",
+        "cvss": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:C/C:H/I:H/A:H"
+      },
+      "timestamp": "2025-09-21T10:59:51.378Z"
+    },
+    {
+      "test": "Robot Movement - Authentication Required",
+      "passed": true,
+      "details": {
+        "message": "Unauthenticated movement blocked",
+        "severity": "low",
+        "cvss": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:N/I:H/A:L"
+      },
+      "timestamp": "2025-09-21T10:59:51.379Z"
+    },
+    {
+      "test": "WebSocket Connection Security",
+      "passed": true,
+      "details": {
+        "message": "Socket.IO endpoint accessible",
+        "severity": "low"
+      },
+      "timestamp": "2025-09-21T10:59:51.381Z"
+    }
+  ],
+  "vulnerabilities": [],
+  "robotSpecificFindings": {
+    "emergencyStopSecurity": [
+      {
+        "test": "Emergency Stop - Unauthenticated Access",
+        "passed": true,
+        "details": {
+          "message": "Unauthenticated emergency stop blocked",
+          "severity": "low",
+          "cvss": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:N/I:H/A:H/E:P",
+          "description": "Emergency stop should require authentication to prevent unauthorized system shutdowns"
+        },
+        "timestamp": "2025-09-21T10:59:51.378Z"
+      },
+      {
+        "test": "Emergency Stop - Command Injection Protection",
+        "passed": true,
+        "details": {
+          "message": "Command injection in emergency stop blocked",
+          "severity": "low",
+          "cvss": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:C/C:H/I:H/A:H"
+        },
+        "timestamp": "2025-09-21T10:59:51.378Z"
+      }
+    ],
+    "movementSecurity": [
+      {
+        "test": "Robot Movement - Authentication Required",
+        "passed": true,
+        "details": {
+          "message": "Unauthenticated movement blocked",
+          "severity": "low",
+          "cvss": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:N/I:H/A:L"
+        },
+        "timestamp": "2025-09-21T10:59:51.379Z"
+      }
+    ],
+    "gcodeSecurityTests": [],
+    "hardwareInterfaceTests": [],
+    "safetyCriticalTests": []
+  },
+  "timestamp": "2025-09-21T10:59:51.381Z",
+  "target": "http://localhost:5001"
+}

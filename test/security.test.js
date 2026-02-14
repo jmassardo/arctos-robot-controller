@@ -8,7 +8,7 @@ const {
   rateLimits,
   validateInput,
   securityMiddleware,
-  threatDetection
+  threatDetection,
 } = require('../lib/security');
 
 // Mock Express app for testing
@@ -18,7 +18,7 @@ function createTestApp() {
   return app;
 }
 
-test('Rate Limiting Middleware', async (t) => {
+test('Rate Limiting Middleware', async t => {
   await t.test('should limit login attempts', async () => {
     const app = createTestApp();
     app.use('/auth/login', rateLimits.auth);
@@ -28,15 +28,11 @@ test('Rate Limiting Middleware', async (t) => {
 
     // Make requests up to the limit
     for (let i = 0; i < 5; i++) {
-      const response = await request(app)
-        .post('/auth/login')
-        .expect(200);
+      const response = await request(app).post('/auth/login').expect(200);
     }
 
     // 6th request should be rate limited
-    const response = await request(app)
-      .post('/auth/login')
-      .expect(429);
+    const response = await request(app).post('/auth/login').expect(429);
 
     assert.ok(response.body.error.includes('Too many'));
   });
@@ -50,15 +46,11 @@ test('Rate Limiting Middleware', async (t) => {
 
     // Make requests up to the limit (100 requests per 15 minutes)
     for (let i = 0; i < 100; i++) {
-      await request(app)
-        .get('/api/test')
-        .expect(200);
+      await request(app).get('/api/test').expect(200);
     }
 
     // 101st request should be rate limited
-    const response = await request(app)
-      .get('/api/test')
-      .expect(429);
+    const response = await request(app).get('/api/test').expect(429);
 
     assert.ok(response.body.error.includes('Too many'));
   });
@@ -72,23 +64,17 @@ test('Rate Limiting Middleware', async (t) => {
 
     // Make requests up to the limit (30 per minute)
     for (let i = 0; i < 30; i++) {
-      await request(app)
-        .post('/api/robot/move')
-        .send({ x: 100 })
-        .expect(200);
+      await request(app).post('/api/robot/move').send({ x: 100 }).expect(200);
     }
 
     // 31st request should be rate limited
-    const response = await request(app)
-      .post('/api/robot/move')
-      .send({ x: 100 })
-      .expect(429);
+    const response = await request(app).post('/api/robot/move').send({ x: 100 }).expect(429);
 
     assert.ok(response.body.error.includes('Too many'));
   });
 });
 
-test('Input Validation Middleware', async (t) => {
+test('Input Validation Middleware', async t => {
   await t.test('should validate robot configuration input', async () => {
     const app = createTestApp();
     app.post('/api/config', validateInput.robotConfig, (req, res) => {
@@ -99,25 +85,19 @@ test('Input Validation Middleware', async (t) => {
     const validConfig = {
       robotType: 'mks57d',
       communicationProtocol: 'serial',
-      axes: { count: 6 }
+      axes: { count: 6 },
     };
 
-    await request(app)
-      .post('/api/config')
-      .send(validConfig)
-      .expect(200);
+    await request(app).post('/api/config').send(validConfig).expect(200);
 
     // Invalid configuration should fail
     const invalidConfig = {
       robotType: '', // Empty string
       communicationProtocol: 'invalid-protocol',
-      axes: { count: 'not-a-number' }
+      axes: { count: 'not-a-number' },
     };
 
-    const response = await request(app)
-      .post('/api/config')
-      .send(invalidConfig)
-      .expect(400);
+    const response = await request(app).post('/api/config').send(invalidConfig).expect(400);
 
     assert.ok(response.body.errors);
     assert.ok(response.body.errors.length > 0);
@@ -134,26 +114,20 @@ test('Input Validation Middleware', async (t) => {
       name: 'Home Position',
       axes: { x: 100, y: 200, z: 300 },
       manipulators: { gripper: 50 },
-      delay: 1000
+      delay: 1000,
     };
 
-    await request(app)
-      .post('/api/positions')
-      .send(validPosition)
-      .expect(200);
+    await request(app).post('/api/positions').send(validPosition).expect(200);
 
     // Invalid position data should fail
     const invalidPosition = {
       name: '', // Empty name
       axes: { x: 'not-a-number' },
       manipulators: { gripper: -10 }, // Invalid range
-      delay: 'invalid-delay'
+      delay: 'invalid-delay',
     };
 
-    const response = await request(app)
-      .post('/api/positions')
-      .send(invalidPosition)
-      .expect(400);
+    const response = await request(app).post('/api/positions').send(invalidPosition).expect(400);
 
     assert.ok(response.body.errors);
   });
@@ -166,23 +140,17 @@ test('Input Validation Middleware', async (t) => {
 
     // Valid G-code should pass
     const validGCode = {
-      gcode: 'G1 X100 Y200 F1000\\nG1 Z50\\nM3'
+      gcode: 'G1 X100 Y200 F1000\\nG1 Z50\\nM3',
     };
 
-    await request(app)
-      .post('/api/gcode/execute')
-      .send(validGCode)
-      .expect(200);
+    await request(app).post('/api/gcode/execute').send(validGCode).expect(200);
 
     // Invalid G-code should fail
     const invalidGCode = {
-      gcode: 'INVALID COMMAND\\nG1 X' // Incomplete command
+      gcode: 'INVALID COMMAND\\nG1 X', // Incomplete command
     };
 
-    const response = await request(app)
-      .post('/api/gcode/execute')
-      .send(invalidGCode)
-      .expect(400);
+    const response = await request(app).post('/api/gcode/execute').send(invalidGCode).expect(400);
 
     assert.ok(response.body.errors);
   });
@@ -198,33 +166,27 @@ test('Input Validation Middleware', async (t) => {
       username: 'newuser123',
       password: 'StrongPassword123!',
       email: 'user@example.com',
-      role: 'operator'
+      role: 'operator',
     };
 
-    await request(app)
-      .post('/auth/register')
-      .send(validUser)
-      .expect(200);
+    await request(app).post('/auth/register').send(validUser).expect(200);
 
     // Invalid user data should fail
     const invalidUser = {
       username: 'us', // Too short
       password: '123', // Too weak
       email: 'invalid-email',
-      role: 'invalid-role'
+      role: 'invalid-role',
     };
 
-    const response = await request(app)
-      .post('/auth/register')
-      .send(invalidUser)
-      .expect(400);
+    const response = await request(app).post('/auth/register').send(invalidUser).expect(400);
 
     assert.ok(response.body.errors);
     assert.ok(response.body.errors.length > 0);
   });
 });
 
-test('Security Headers Middleware', async (t) => {
+test('Security Headers Middleware', async t => {
   await t.test('should apply security headers', async () => {
     const app = createTestApp();
     app.use(securityMiddleware);
@@ -232,9 +194,7 @@ test('Security Headers Middleware', async (t) => {
       res.json({ success: true });
     });
 
-    const response = await request(app)
-      .get('/test')
-      .expect(200);
+    const response = await request(app).get('/test').expect(200);
 
     // Check for security headers
     assert.ok(response.headers['x-content-type-options']);
@@ -251,9 +211,7 @@ test('Security Headers Middleware', async (t) => {
       res.json({ success: true });
     });
 
-    const response = await request(app)
-      .get('/test')
-      .expect(200);
+    const response = await request(app).get('/test').expect(200);
 
     const csp = response.headers['content-security-policy'];
     assert.ok(csp.includes("default-src 'self'"));
@@ -262,7 +220,7 @@ test('Security Headers Middleware', async (t) => {
   });
 });
 
-test('Threat Detection Middleware', async (t) => {
+test('Threat Detection Middleware', async t => {
   await t.test('should detect SQL injection attempts', async () => {
     const app = createTestApp();
     app.use(threatDetection);
@@ -273,13 +231,10 @@ test('Threat Detection Middleware', async (t) => {
     // SQL injection attempt
     const maliciousPayload = {
       username: "admin'; DROP TABLE users; --",
-      search: "1' OR '1'='1"
+      search: "1' OR '1'='1",
     };
 
-    const response = await request(app)
-      .post('/api/test')
-      .send(maliciousPayload)
-      .expect(400);
+    const response = await request(app).post('/api/test').send(maliciousPayload).expect(400);
 
     assert.ok(response.body.error.includes('security violation'));
   });
@@ -294,13 +249,10 @@ test('Threat Detection Middleware', async (t) => {
     // XSS attempt
     const maliciousPayload = {
       comment: '<script>alert("XSS")</script>',
-      description: '<img src="x" onerror="alert(1)">'
+      description: '<img src="x" onerror="alert(1)">',
     };
 
-    const response = await request(app)
-      .post('/api/test')
-      .send(maliciousPayload)
-      .expect(400);
+    const response = await request(app).post('/api/test').send(maliciousPayload).expect(400);
 
     assert.ok(response.body.error.includes('security violation'));
   });
@@ -315,13 +267,10 @@ test('Threat Detection Middleware', async (t) => {
     // Command injection attempt
     const maliciousPayload = {
       filename: 'test.txt; rm -rf /',
-      command: 'ls | cat /etc/passwd'
+      command: 'ls | cat /etc/passwd',
     };
 
-    const response = await request(app)
-      .post('/api/test')
-      .send(maliciousPayload)
-      .expect(400);
+    const response = await request(app).post('/api/test').send(maliciousPayload).expect(400);
 
     assert.ok(response.body.error.includes('security violation'));
   });
@@ -337,23 +286,20 @@ test('Threat Detection Middleware', async (t) => {
     const safePayload = {
       username: 'normaluser',
       description: 'This is a normal description',
-      value: 42
+      value: 42,
     };
 
-    await request(app)
-      .post('/api/test')
-      .send(safePayload)
-      .expect(200);
+    await request(app).post('/api/test').send(safePayload).expect(200);
   });
 });
 
-test('Input Sanitization', async (t) => {
+test('Input Sanitization', async t => {
   const { sanitizeInput } = require('../lib/security');
 
   await t.test('should sanitize HTML input', () => {
     const dirty = '<script>alert("xss")</script><p>Valid content</p>';
     const clean = sanitizeInput(dirty);
-    
+
     assert.ok(!clean.includes('<script>'));
     assert.ok(clean.includes('Valid content'));
   });
@@ -361,7 +307,7 @@ test('Input Sanitization', async (t) => {
   await t.test('should sanitize SQL injection attempts', () => {
     const dirty = "'; DROP TABLE users; --";
     const clean = sanitizeInput(dirty);
-    
+
     assert.ok(!clean.includes('DROP TABLE'));
     assert.ok(!clean.includes('--'));
   });
@@ -369,19 +315,19 @@ test('Input Sanitization', async (t) => {
   await t.test('should preserve safe content', () => {
     const safe = 'This is normal text with numbers 123 and symbols: @#$%';
     const clean = sanitizeInput(safe);
-    
+
     assert.strictEqual(clean, safe);
   });
 });
 
-test('Security Configuration Validation', async (t) => {
+test('Security Configuration Validation', async t => {
   const { validateSecurityConfig } = require('../lib/security');
 
   await t.test('should validate rate limit configuration', () => {
     const validConfig = {
       windowMs: 900000, // 15 minutes
       max: 100,
-      message: 'Too many requests'
+      message: 'Too many requests',
     };
 
     const result = validateSecurityConfig.rateLimits(validConfig);
@@ -390,7 +336,7 @@ test('Security Configuration Validation', async (t) => {
     const invalidConfig = {
       windowMs: -1, // Invalid
       max: 'not-a-number',
-      message: ''
+      message: '',
     };
 
     const invalidResult = validateSecurityConfig.rateLimits(invalidConfig);
@@ -401,7 +347,7 @@ test('Security Configuration Validation', async (t) => {
     const validCors = {
       origin: ['http://localhost:3000', 'http://localhost:3001'],
       credentials: true,
-      methods: ['GET', 'POST', 'PUT', 'DELETE']
+      methods: ['GET', 'POST', 'PUT', 'DELETE'],
     };
 
     const result = validateSecurityConfig.cors(validCors);
@@ -410,7 +356,7 @@ test('Security Configuration Validation', async (t) => {
     const invalidCors = {
       origin: 'invalid-origin-format',
       credentials: 'not-boolean',
-      methods: 'not-array'
+      methods: 'not-array',
     };
 
     const invalidResult = validateSecurityConfig.cors(invalidCors);

@@ -17,7 +17,7 @@ const mockUsers = {
     isActive: true,
     loginAttempts: 0,
     lastLogin: null,
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
   },
   adminUser: {
     id: 2,
@@ -28,11 +28,11 @@ const mockUsers = {
     isActive: true,
     loginAttempts: 0,
     lastLogin: null,
-    createdAt: new Date().toISOString()
-  }
+    createdAt: new Date().toISOString(),
+  },
 };
 
-test('AuthService - User Management', async (t) => {
+test('AuthService - User Management', async t => {
   // Setup test environment
   const testDataDir = path.join(__dirname, 'test-data');
   await fs.ensureDir(testDataDir);
@@ -43,7 +43,7 @@ test('AuthService - User Management', async (t) => {
       username: 'newuser',
       password: 'password123',
       email: 'newuser@example.com',
-      role: 'viewer'
+      role: 'viewer',
     };
 
     const result = await authService.createUser(userData);
@@ -58,7 +58,7 @@ test('AuthService - User Management', async (t) => {
       username: 'newuser', // Same as above
       password: 'different123',
       email: 'different@example.com',
-      role: 'operator'
+      role: 'operator',
     };
 
     const result = await authService.createUser(userData);
@@ -71,7 +71,7 @@ test('AuthService - User Management', async (t) => {
       username: 'u', // Too short
       password: '123', // Too short
       email: 'invalid-email',
-      role: 'invalid-role'
+      role: 'invalid-role',
     };
 
     const result = await authService.createUser(invalidUserData);
@@ -88,7 +88,7 @@ test('AuthService - User Management', async (t) => {
   await t.test('should update user', async () => {
     const updates = {
       email: 'updated@example.com',
-      role: 'operator'
+      role: 'operator',
     };
 
     const result = await authService.updateUser('newuser', updates);
@@ -109,7 +109,7 @@ test('AuthService - User Management', async (t) => {
   await fs.remove(testDataDir);
 });
 
-test('AuthService - Authentication', async (t) => {
+test('AuthService - Authentication', async t => {
   const testDataDir = path.join(__dirname, 'test-data-auth');
   await fs.ensureDir(testDataDir);
   const authService = new AuthService(testDataDir);
@@ -119,7 +119,7 @@ test('AuthService - Authentication', async (t) => {
     username: 'testauth',
     password: 'password123',
     email: 'testauth@example.com',
-    role: 'operator'
+    role: 'operator',
   });
 
   await t.test('should login with valid credentials', async () => {
@@ -148,7 +148,7 @@ test('AuthService - Authentication', async (t) => {
       username: 'lockouttest',
       password: 'password123',
       email: 'lockout@example.com',
-      role: 'operator'
+      role: 'operator',
     });
 
     // Make 5 failed login attempts
@@ -204,7 +204,7 @@ test('AuthService - Authentication', async (t) => {
   await fs.remove(testDataDir);
 });
 
-test('AuthService - Password Security', async (t) => {
+test('AuthService - Password Security', async t => {
   const testDataDir = path.join(__dirname, 'test-data-password');
   await fs.ensureDir(testDataDir);
   const authService = new AuthService(testDataDir);
@@ -212,7 +212,7 @@ test('AuthService - Password Security', async (t) => {
   await t.test('should hash passwords securely', async () => {
     const password = 'testpassword123';
     const hashedPassword = await authService.hashPassword(password);
-    
+
     assert.ok(hashedPassword);
     assert.ok(hashedPassword.startsWith('$2b$'));
     assert.notStrictEqual(hashedPassword, password);
@@ -221,7 +221,7 @@ test('AuthService - Password Security', async (t) => {
   await t.test('should verify passwords correctly', async () => {
     const password = 'testpassword123';
     const hashedPassword = await authService.hashPassword(password);
-    
+
     const isValid = await authService.verifyPassword(password, hashedPassword);
     assert.ok(isValid);
 
@@ -248,7 +248,7 @@ test('AuthService - Password Security', async (t) => {
   await fs.remove(testDataDir);
 });
 
-test('AuthService - Role-Based Access Control', async (t) => {
+test('AuthService - Role-Based Access Control', async t => {
   const testDataDir = path.join(__dirname, 'test-data-rbac');
   await fs.ensureDir(testDataDir);
   const authService = new AuthService(testDataDir);
@@ -285,7 +285,7 @@ test('AuthService - Role-Based Access Control', async (t) => {
   await fs.remove(testDataDir);
 });
 
-test('AuthService - Session Management', async (t) => {
+test('AuthService - Session Management', async t => {
   const testDataDir = path.join(__dirname, 'test-data-session');
   await fs.ensureDir(testDataDir);
   const authService = new AuthService(testDataDir);
@@ -295,7 +295,7 @@ test('AuthService - Session Management', async (t) => {
     username: 'sessiontest',
     password: 'password123',
     email: 'session@example.com',
-    role: 'operator'
+    role: 'operator',
   });
 
   await t.test('should create and track sessions', async () => {

@@ -1,0 +1,330 @@
+{
+  "startTime": "2025-09-21T08:17:37.601Z",
+  "endTime": "2025-09-21T08:17:37.909Z",
+  "duration": 308,
+  "totalTests": 5,
+  "passedTests": 0,
+  "failedTests": 0,
+  "skippedTests": 0,
+  "suiteResults": [
+    {
+      "name": "API Contract Tests",
+      "description": "Testing all REST API endpoints and contracts",
+      "startTime": "2025-09-21T08:17:37.602Z",
+      "endTime": "2025-09-21T08:17:37.690Z",
+      "duration": 88,
+      "status": "FAILED",
+      "tests": 1,
+      "passed": 0,
+      "failed": 0,
+      "skipped": 0,
+      "output": "node:internal/modules/cjs/loader:1423\n  throw err;\n  ^\n\nError: Cannot find module 'supertest'\nRequire stack:\n- /Users/jenna/code/arctos-robot-controller/test/integration-tests/integration-test-helpers.js\n- /Users/jenna/code/arctos-robot-controller/test/integration-tests/api-contracts/api-contract-tests.js\n    at Module._resolveFilename (node:internal/modules/cjs/loader:1420:15)\n    at defaultResolveImpl (node:internal/modules/cjs/loader:1058:19)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1063:22)\n    at Module._load (node:internal/modules/cjs/loader:1226:37)\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:244:24)\n    at Module.require (node:internal/modules/cjs/loader:1503:12)\n    at require (node:internal/modules/helpers:152:16)\n    at Object.<anonymous> (/Users/jenna/code/arctos-robot-controller/test/integration-tests/integration-test-helpers.js:14:17)\n    at Module._compile (node:internal/modules/cjs/loader:1760:14) {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: [\n    '/Users/jenna/code/arctos-robot-controller/test/integration-tests/integration-test-helpers.js',\n    '/Users/jenna/code/arctos-robot-controller/test/integration-tests/api-contracts/api-contract-tests.js'\n  ]\n}\n\nNode.js v24.8.0\n✖ /Users/jenna/code/arctos-robot-controller/test/integration-tests/api-contracts/api-contract-tests.js (25.740083ms)\nℹ tests 1\nℹ suites 0\nℹ pass 0\nℹ fail 1\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 29.272542\n\n✖ failing tests:\n\ntest at test/integration-tests/api-contracts/api-contract-tests.js:1:1\n✖ /Users/jenna/code/arctos-robot-controller/test/integration-tests/api-contracts/api-contract-tests.js (25.740083ms)\n  'test failed'\n",
+      "errors": [
+        {
+          "message": "Error: Cannot find module 'supertest'",
+          "type": "TEST_FAILURE"
+        },
+        {
+          "message": "ℹ fail 1",
+          "type": "TEST_FAILURE"
+        },
+        {
+          "message": "✖ failing tests:",
+          "type": "TEST_FAILURE"
+        },
+        {
+          "message": "'test failed'",
+          "type": "TEST_FAILURE"
+        }
+      ]
+    },
+    {
+      "name": "Database Integration Tests",
+      "description": "Testing database operations and data consistency",
+      "startTime": "2025-09-21T08:17:37.690Z",
+      "endTime": "2025-09-21T08:17:37.750Z",
+      "duration": 60,
+      "status": "FAILED",
+      "tests": 1,
+      "passed": 0,
+      "failed": 0,
+      "skipped": 0,
+      "output": "node:internal/modules/cjs/loader:1423\n  throw err;\n  ^\n\nError: Cannot find module 'supertest'\nRequire stack:\n- /Users/jenna/code/arctos-robot-controller/test/integration-tests/integration-test-helpers.js\n- /Users/jenna/code/arctos-robot-controller/test/integration-tests/database-integration/database-integration-tests.js\n    at Module._resolveFilename (node:internal/modules/cjs/loader:1420:15)\n    at defaultResolveImpl (node:internal/modules/cjs/loader:1058:19)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1063:22)\n    at Module._load (node:internal/modules/cjs/loader:1226:37)\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:244:24)\n    at Module.require (node:internal/modules/cjs/loader:1503:12)\n    at require (node:internal/modules/helpers:152:16)\n    at Object.<anonymous> (/Users/jenna/code/arctos-robot-controller/test/integration-tests/integration-test-helpers.js:14:17)\n    at Module._compile (node:internal/modules/cjs/loader:1760:14) {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: [\n    '/Users/jenna/code/arctos-robot-controller/test/integration-tests/integration-test-helpers.js',\n    '/Users/jenna/code/arctos-robot-controller/test/integration-tests/database-integration/database-integration-tests.js'\n  ]\n}\n\nNode.js v24.8.0\n✖ /Users/jenna/code/arctos-robot-controller/test/integration-tests/database-integration/database-integration-tests.js (31.378584ms)\nℹ tests 1\nℹ suites 0\nℹ pass 0\nℹ fail 1\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 34.82775\n\n✖ failing tests:\n\ntest at test/integration-tests/database-integration/database-integration-tests.js:1:1\n✖ /Users/jenna/code/arctos-robot-controller/test/integration-tests/database-integration/database-integration-tests.js (31.378584ms)\n  'test failed'\n",
+      "errors": [
+        {
+          "message": "Error: Cannot find module 'supertest'",
+          "type": "TEST_FAILURE"
+        },
+        {
+          "message": "ℹ fail 1",
+          "type": "TEST_FAILURE"
+        },
+        {
+          "message": "✖ failing tests:",
+          "type": "TEST_FAILURE"
+        },
+        {
+          "message": "'test failed'",
+          "type": "TEST_FAILURE"
+        }
+      ]
+    },
+    {
+      "name": "Socket.IO Integration Tests",
+      "description": "Testing real-time WebSocket communication",
+      "startTime": "2025-09-21T08:17:37.750Z",
+      "endTime": "2025-09-21T08:17:37.802Z",
+      "duration": 52,
+      "status": "FAILED",
+      "tests": 1,
+      "passed": 0,
+      "failed": 0,
+      "skipped": 0,
+      "output": "node:internal/modules/cjs/loader:1423\n  throw err;\n  ^\n\nError: Cannot find module 'supertest'\nRequire stack:\n- /Users/jenna/code/arctos-robot-controller/test/integration-tests/integration-test-helpers.js\n- /Users/jenna/code/arctos-robot-controller/test/integration-tests/socket-integration/socket-integration-tests.js\n    at Module._resolveFilename (node:internal/modules/cjs/loader:1420:15)\n    at defaultResolveImpl (node:internal/modules/cjs/loader:1058:19)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1063:22)\n    at Module._load (node:internal/modules/cjs/loader:1226:37)\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:244:24)\n    at Module.require (node:internal/modules/cjs/loader:1503:12)\n    at require (node:internal/modules/helpers:152:16)\n    at Object.<anonymous> (/Users/jenna/code/arctos-robot-controller/test/integration-tests/integration-test-helpers.js:14:17)\n    at Module._compile (node:internal/modules/cjs/loader:1760:14) {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: [\n    '/Users/jenna/code/arctos-robot-controller/test/integration-tests/integration-test-helpers.js',\n    '/Users/jenna/code/arctos-robot-controller/test/integration-tests/socket-integration/socket-integration-tests.js'\n  ]\n}\n\nNode.js v24.8.0\n✖ /Users/jenna/code/arctos-robot-controller/test/integration-tests/socket-integration/socket-integration-tests.js (24.530625ms)\nℹ tests 1\nℹ suites 0\nℹ pass 0\nℹ fail 1\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 27.99125\n\n✖ failing tests:\n\ntest at test/integration-tests/socket-integration/socket-integration-tests.js:1:1\n✖ /Users/jenna/code/arctos-robot-controller/test/integration-tests/socket-integration/socket-integration-tests.js (24.530625ms)\n  'test failed'\n",
+      "errors": [
+        {
+          "message": "Error: Cannot find module 'supertest'",
+          "type": "TEST_FAILURE"
+        },
+        {
+          "message": "ℹ fail 1",
+          "type": "TEST_FAILURE"
+        },
+        {
+          "message": "✖ failing tests:",
+          "type": "TEST_FAILURE"
+        },
+        {
+          "message": "'test failed'",
+          "type": "TEST_FAILURE"
+        }
+      ]
+    },
+    {
+      "name": "Authentication Flow Tests",
+      "description": "Testing complete authentication workflows including 2FA",
+      "startTime": "2025-09-21T08:17:37.802Z",
+      "endTime": "2025-09-21T08:17:37.857Z",
+      "duration": 55,
+      "status": "FAILED",
+      "tests": 1,
+      "passed": 0,
+      "failed": 0,
+      "skipped": 0,
+      "output": "node:internal/modules/cjs/loader:1423\n  throw err;\n  ^\n\nError: Cannot find module 'supertest'\nRequire stack:\n- /Users/jenna/code/arctos-robot-controller/test/integration-tests/integration-test-helpers.js\n- /Users/jenna/code/arctos-robot-controller/test/integration-tests/auth-flow/auth-flow-integration-tests.js\n    at Module._resolveFilename (node:internal/modules/cjs/loader:1420:15)\n    at defaultResolveImpl (node:internal/modules/cjs/loader:1058:19)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1063:22)\n    at Module._load (node:internal/modules/cjs/loader:1226:37)\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:244:24)\n    at Module.require (node:internal/modules/cjs/loader:1503:12)\n    at require (node:internal/modules/helpers:152:16)\n    at Object.<anonymous> (/Users/jenna/code/arctos-robot-controller/test/integration-tests/integration-test-helpers.js:14:17)\n    at Module._compile (node:internal/modules/cjs/loader:1760:14) {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: [\n    '/Users/jenna/code/arctos-robot-controller/test/integration-tests/integration-test-helpers.js',\n    '/Users/jenna/code/arctos-robot-controller/test/integration-tests/auth-flow/auth-flow-integration-tests.js'\n  ]\n}\n\nNode.js v24.8.0\n✖ /Users/jenna/code/arctos-robot-controller/test/integration-tests/auth-flow/auth-flow-integration-tests.js (28.0635ms)\nℹ tests 1\nℹ suites 0\nℹ pass 0\nℹ fail 1\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 31.495083\n\n✖ failing tests:\n\ntest at test/integration-tests/auth-flow/auth-flow-integration-tests.js:1:1\n✖ /Users/jenna/code/arctos-robot-controller/test/integration-tests/auth-flow/auth-flow-integration-tests.js (28.0635ms)\n  'test failed'\n",
+      "errors": [
+        {
+          "message": "Error: Cannot find module 'supertest'",
+          "type": "TEST_FAILURE"
+        },
+        {
+          "message": "ℹ fail 1",
+          "type": "TEST_FAILURE"
+        },
+        {
+          "message": "✖ failing tests:",
+          "type": "TEST_FAILURE"
+        },
+        {
+          "message": "'test failed'",
+          "type": "TEST_FAILURE"
+        }
+      ]
+    },
+    {
+      "name": "Hardware Integration Tests",
+      "description": "Testing hardware communication and protocols",
+      "startTime": "2025-09-21T08:17:37.857Z",
+      "endTime": "2025-09-21T08:17:37.909Z",
+      "duration": 52,
+      "status": "FAILED",
+      "tests": 1,
+      "passed": 0,
+      "failed": 0,
+      "skipped": 0,
+      "output": "node:internal/modules/cjs/loader:1423\n  throw err;\n  ^\n\nError: Cannot find module 'supertest'\nRequire stack:\n- /Users/jenna/code/arctos-robot-controller/test/integration-tests/integration-test-helpers.js\n- /Users/jenna/code/arctos-robot-controller/test/integration-tests/hardware-integration/hardware-integration-tests.js\n    at Module._resolveFilename (node:internal/modules/cjs/loader:1420:15)\n    at defaultResolveImpl (node:internal/modules/cjs/loader:1058:19)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1063:22)\n    at Module._load (node:internal/modules/cjs/loader:1226:37)\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:244:24)\n    at Module.require (node:internal/modules/cjs/loader:1503:12)\n    at require (node:internal/modules/helpers:152:16)\n    at Object.<anonymous> (/Users/jenna/code/arctos-robot-controller/test/integration-tests/integration-test-helpers.js:14:17)\n    at Module._compile (node:internal/modules/cjs/loader:1760:14) {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: [\n    '/Users/jenna/code/arctos-robot-controller/test/integration-tests/integration-test-helpers.js',\n    '/Users/jenna/code/arctos-robot-controller/test/integration-tests/hardware-integration/hardware-integration-tests.js'\n  ]\n}\n\nNode.js v24.8.0\n✖ /Users/jenna/code/arctos-robot-controller/test/integration-tests/hardware-integration/hardware-integration-tests.js (24.2805ms)\nℹ tests 1\nℹ suites 0\nℹ pass 0\nℹ fail 1\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 27.74725\n\n✖ failing tests:\n\ntest at test/integration-tests/hardware-integration/hardware-integration-tests.js:1:1\n✖ /Users/jenna/code/arctos-robot-controller/test/integration-tests/hardware-integration/hardware-integration-tests.js (24.2805ms)\n  'test failed'\n",
+      "errors": [
+        {
+          "message": "Error: Cannot find module 'supertest'",
+          "type": "TEST_FAILURE"
+        },
+        {
+          "message": "ℹ fail 1",
+          "type": "TEST_FAILURE"
+        },
+        {
+          "message": "✖ failing tests:",
+          "type": "TEST_FAILURE"
+        },
+        {
+          "message": "'test failed'",
+          "type": "TEST_FAILURE"
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "testSuites": [
+    {
+      "name": "API Contract Tests",
+      "description": "Testing all REST API endpoints and contracts",
+      "startTime": "2025-09-21T08:17:37.602Z",
+      "endTime": "2025-09-21T08:17:37.690Z",
+      "duration": 88,
+      "status": "FAILED",
+      "tests": 1,
+      "passed": 0,
+      "failed": 0,
+      "skipped": 0,
+      "output": "node:internal/modules/cjs/loader:1423\n  throw err;\n  ^\n\nError: Cannot find module 'supertest'\nRequire stack:\n- /Users/jenna/code/arctos-robot-controller/test/integration-tests/integration-test-helpers.js\n- /Users/jenna/code/arctos-robot-controller/test/integration-tests/api-contracts/api-contract-tests.js\n    at Module._resolveFilename (node:internal/modules/cjs/loader:1420:15)\n    at defaultResolveImpl (node:internal/modules/cjs/loader:1058:19)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1063:22)\n    at Module._load (node:internal/modules/cjs/loader:1226:37)\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:244:24)\n    at Module.require (node:internal/modules/cjs/loader:1503:12)\n    at require (node:internal/modules/helpers:152:16)\n    at Object.<anonymous> (/Users/jenna/code/arctos-robot-controller/test/integration-tests/integration-test-helpers.js:14:17)\n    at Module._compile (node:internal/modules/cjs/loader:1760:14) {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: [\n    '/Users/jenna/code/arctos-robot-controller/test/integration-tests/integration-test-helpers.js',\n    '/Users/jenna/code/arctos-robot-controller/test/integration-tests/api-contracts/api-contract-tests.js'\n  ]\n}\n\nNode.js v24.8.0\n✖ /Users/jenna/code/arctos-robot-controller/test/integration-tests/api-contracts/api-contract-tests.js (25.740083ms)\nℹ tests 1\nℹ suites 0\nℹ pass 0\nℹ fail 1\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 29.272542\n\n✖ failing tests:\n\ntest at test/integration-tests/api-contracts/api-contract-tests.js:1:1\n✖ /Users/jenna/code/arctos-robot-controller/test/integration-tests/api-contracts/api-contract-tests.js (25.740083ms)\n  'test failed'\n",
+      "errors": [
+        {
+          "message": "Error: Cannot find module 'supertest'",
+          "type": "TEST_FAILURE"
+        },
+        {
+          "message": "ℹ fail 1",
+          "type": "TEST_FAILURE"
+        },
+        {
+          "message": "✖ failing tests:",
+          "type": "TEST_FAILURE"
+        },
+        {
+          "message": "'test failed'",
+          "type": "TEST_FAILURE"
+        }
+      ]
+    },
+    {
+      "name": "Database Integration Tests",
+      "description": "Testing database operations and data consistency",
+      "startTime": "2025-09-21T08:17:37.690Z",
+      "endTime": "2025-09-21T08:17:37.750Z",
+      "duration": 60,
+      "status": "FAILED",
+      "tests": 1,
+      "passed": 0,
+      "failed": 0,
+      "skipped": 0,
+      "output": "node:internal/modules/cjs/loader:1423\n  throw err;\n  ^\n\nError: Cannot find module 'supertest'\nRequire stack:\n- /Users/jenna/code/arctos-robot-controller/test/integration-tests/integration-test-helpers.js\n- /Users/jenna/code/arctos-robot-controller/test/integration-tests/database-integration/database-integration-tests.js\n    at Module._resolveFilename (node:internal/modules/cjs/loader:1420:15)\n    at defaultResolveImpl (node:internal/modules/cjs/loader:1058:19)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1063:22)\n    at Module._load (node:internal/modules/cjs/loader:1226:37)\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:244:24)\n    at Module.require (node:internal/modules/cjs/loader:1503:12)\n    at require (node:internal/modules/helpers:152:16)\n    at Object.<anonymous> (/Users/jenna/code/arctos-robot-controller/test/integration-tests/integration-test-helpers.js:14:17)\n    at Module._compile (node:internal/modules/cjs/loader:1760:14) {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: [\n    '/Users/jenna/code/arctos-robot-controller/test/integration-tests/integration-test-helpers.js',\n    '/Users/jenna/code/arctos-robot-controller/test/integration-tests/database-integration/database-integration-tests.js'\n  ]\n}\n\nNode.js v24.8.0\n✖ /Users/jenna/code/arctos-robot-controller/test/integration-tests/database-integration/database-integration-tests.js (31.378584ms)\nℹ tests 1\nℹ suites 0\nℹ pass 0\nℹ fail 1\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 34.82775\n\n✖ failing tests:\n\ntest at test/integration-tests/database-integration/database-integration-tests.js:1:1\n✖ /Users/jenna/code/arctos-robot-controller/test/integration-tests/database-integration/database-integration-tests.js (31.378584ms)\n  'test failed'\n",
+      "errors": [
+        {
+          "message": "Error: Cannot find module 'supertest'",
+          "type": "TEST_FAILURE"
+        },
+        {
+          "message": "ℹ fail 1",
+          "type": "TEST_FAILURE"
+        },
+        {
+          "message": "✖ failing tests:",
+          "type": "TEST_FAILURE"
+        },
+        {
+          "message": "'test failed'",
+          "type": "TEST_FAILURE"
+        }
+      ]
+    },
+    {
+      "name": "Socket.IO Integration Tests",
+      "description": "Testing real-time WebSocket communication",
+      "startTime": "2025-09-21T08:17:37.750Z",
+      "endTime": "2025-09-21T08:17:37.802Z",
+      "duration": 52,
+      "status": "FAILED",
+      "tests": 1,
+      "passed": 0,
+      "failed": 0,
+      "skipped": 0,
+      "output": "node:internal/modules/cjs/loader:1423\n  throw err;\n  ^\n\nError: Cannot find module 'supertest'\nRequire stack:\n- /Users/jenna/code/arctos-robot-controller/test/integration-tests/integration-test-helpers.js\n- /Users/jenna/code/arctos-robot-controller/test/integration-tests/socket-integration/socket-integration-tests.js\n    at Module._resolveFilename (node:internal/modules/cjs/loader:1420:15)\n    at defaultResolveImpl (node:internal/modules/cjs/loader:1058:19)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1063:22)\n    at Module._load (node:internal/modules/cjs/loader:1226:37)\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:244:24)\n    at Module.require (node:internal/modules/cjs/loader:1503:12)\n    at require (node:internal/modules/helpers:152:16)\n    at Object.<anonymous> (/Users/jenna/code/arctos-robot-controller/test/integration-tests/integration-test-helpers.js:14:17)\n    at Module._compile (node:internal/modules/cjs/loader:1760:14) {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: [\n    '/Users/jenna/code/arctos-robot-controller/test/integration-tests/integration-test-helpers.js',\n    '/Users/jenna/code/arctos-robot-controller/test/integration-tests/socket-integration/socket-integration-tests.js'\n  ]\n}\n\nNode.js v24.8.0\n✖ /Users/jenna/code/arctos-robot-controller/test/integration-tests/socket-integration/socket-integration-tests.js (24.530625ms)\nℹ tests 1\nℹ suites 0\nℹ pass 0\nℹ fail 1\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 27.99125\n\n✖ failing tests:\n\ntest at test/integration-tests/socket-integration/socket-integration-tests.js:1:1\n✖ /Users/jenna/code/arctos-robot-controller/test/integration-tests/socket-integration/socket-integration-tests.js (24.530625ms)\n  'test failed'\n",
+      "errors": [
+        {
+          "message": "Error: Cannot find module 'supertest'",
+          "type": "TEST_FAILURE"
+        },
+        {
+          "message": "ℹ fail 1",
+          "type": "TEST_FAILURE"
+        },
+        {
+          "message": "✖ failing tests:",
+          "type": "TEST_FAILURE"
+        },
+        {
+          "message": "'test failed'",
+          "type": "TEST_FAILURE"
+        }
+      ]
+    },
+    {
+      "name": "Authentication Flow Tests",
+      "description": "Testing complete authentication workflows including 2FA",
+      "startTime": "2025-09-21T08:17:37.802Z",
+      "endTime": "2025-09-21T08:17:37.857Z",
+      "duration": 55,
+      "status": "FAILED",
+      "tests": 1,
+      "passed": 0,
+      "failed": 0,
+      "skipped": 0,
+      "output": "node:internal/modules/cjs/loader:1423\n  throw err;\n  ^\n\nError: Cannot find module 'supertest'\nRequire stack:\n- /Users/jenna/code/arctos-robot-controller/test/integration-tests/integration-test-helpers.js\n- /Users/jenna/code/arctos-robot-controller/test/integration-tests/auth-flow/auth-flow-integration-tests.js\n    at Module._resolveFilename (node:internal/modules/cjs/loader:1420:15)\n    at defaultResolveImpl (node:internal/modules/cjs/loader:1058:19)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1063:22)\n    at Module._load (node:internal/modules/cjs/loader:1226:37)\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:244:24)\n    at Module.require (node:internal/modules/cjs/loader:1503:12)\n    at require (node:internal/modules/helpers:152:16)\n    at Object.<anonymous> (/Users/jenna/code/arctos-robot-controller/test/integration-tests/integration-test-helpers.js:14:17)\n    at Module._compile (node:internal/modules/cjs/loader:1760:14) {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: [\n    '/Users/jenna/code/arctos-robot-controller/test/integration-tests/integration-test-helpers.js',\n    '/Users/jenna/code/arctos-robot-controller/test/integration-tests/auth-flow/auth-flow-integration-tests.js'\n  ]\n}\n\nNode.js v24.8.0\n✖ /Users/jenna/code/arctos-robot-controller/test/integration-tests/auth-flow/auth-flow-integration-tests.js (28.0635ms)\nℹ tests 1\nℹ suites 0\nℹ pass 0\nℹ fail 1\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 31.495083\n\n✖ failing tests:\n\ntest at test/integration-tests/auth-flow/auth-flow-integration-tests.js:1:1\n✖ /Users/jenna/code/arctos-robot-controller/test/integration-tests/auth-flow/auth-flow-integration-tests.js (28.0635ms)\n  'test failed'\n",
+      "errors": [
+        {
+          "message": "Error: Cannot find module 'supertest'",
+          "type": "TEST_FAILURE"
+        },
+        {
+          "message": "ℹ fail 1",
+          "type": "TEST_FAILURE"
+        },
+        {
+          "message": "✖ failing tests:",
+          "type": "TEST_FAILURE"
+        },
+        {
+          "message": "'test failed'",
+          "type": "TEST_FAILURE"
+        }
+      ]
+    },
+    {
+      "name": "Hardware Integration Tests",
+      "description": "Testing hardware communication and protocols",
+      "startTime": "2025-09-21T08:17:37.857Z",
+      "endTime": "2025-09-21T08:17:37.909Z",
+      "duration": 52,
+      "status": "FAILED",
+      "tests": 1,
+      "passed": 0,
+      "failed": 0,
+      "skipped": 0,
+      "output": "node:internal/modules/cjs/loader:1423\n  throw err;\n  ^\n\nError: Cannot find module 'supertest'\nRequire stack:\n- /Users/jenna/code/arctos-robot-controller/test/integration-tests/integration-test-helpers.js\n- /Users/jenna/code/arctos-robot-controller/test/integration-tests/hardware-integration/hardware-integration-tests.js\n    at Module._resolveFilename (node:internal/modules/cjs/loader:1420:15)\n    at defaultResolveImpl (node:internal/modules/cjs/loader:1058:19)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1063:22)\n    at Module._load (node:internal/modules/cjs/loader:1226:37)\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:244:24)\n    at Module.require (node:internal/modules/cjs/loader:1503:12)\n    at require (node:internal/modules/helpers:152:16)\n    at Object.<anonymous> (/Users/jenna/code/arctos-robot-controller/test/integration-tests/integration-test-helpers.js:14:17)\n    at Module._compile (node:internal/modules/cjs/loader:1760:14) {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: [\n    '/Users/jenna/code/arctos-robot-controller/test/integration-tests/integration-test-helpers.js',\n    '/Users/jenna/code/arctos-robot-controller/test/integration-tests/hardware-integration/hardware-integration-tests.js'\n  ]\n}\n\nNode.js v24.8.0\n✖ /Users/jenna/code/arctos-robot-controller/test/integration-tests/hardware-integration/hardware-integration-tests.js (24.2805ms)\nℹ tests 1\nℹ suites 0\nℹ pass 0\nℹ fail 1\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 27.74725\n\n✖ failing tests:\n\ntest at test/integration-tests/hardware-integration/hardware-integration-tests.js:1:1\n✖ /Users/jenna/code/arctos-robot-controller/test/integration-tests/hardware-integration/hardware-integration-tests.js (24.2805ms)\n  'test failed'\n",
+      "errors": [
+        {
+          "message": "Error: Cannot find module 'supertest'",
+          "type": "TEST_FAILURE"
+        },
+        {
+          "message": "ℹ fail 1",
+          "type": "TEST_FAILURE"
+        },
+        {
+          "message": "✖ failing tests:",
+          "type": "TEST_FAILURE"
+        },
+        {
+          "message": "'test failed'",
+          "type": "TEST_FAILURE"
+        }
+      ]
+    }
+  ],
+  "configuration": {
+    "parallel": false,
+    "timeout": 300000,
+    "nodeVersion": "v24.8.0",
+    "platform": "darwin"
+  }
+}

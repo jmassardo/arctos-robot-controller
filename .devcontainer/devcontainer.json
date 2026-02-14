@@ -1,7 +1,7 @@
 {
   "name": "Arctos Robot Controller",
   "image": "mcr.microsoft.com/devcontainers/javascript-node:18",
-  
+
   "features": {
     "ghcr.io/devcontainers/features/git:1": {}
   },

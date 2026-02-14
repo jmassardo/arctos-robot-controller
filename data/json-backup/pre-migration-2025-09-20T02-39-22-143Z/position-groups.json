@@ -3,9 +3,7 @@
     "id": 1754519145111,
     "name": "Basic Positions",
     "description": "Common robot positions like home and park positions",
-    "positionIds": [
-      1754519088628
-    ],
+    "positionIds": [1754519088628],
     "timestamp": "2025-08-06T22:25:45.111Z"
   },
   {

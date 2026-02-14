@@ -4,20 +4,20 @@ const fs = require('fs-extra');
 const path = require('path');
 
 // Import logging system
-const Logger = require('../lib/logger');
+const { Logger } = require('../lib/logger');
 
-test('Logger - Basic Functionality', async (t) => {
+test('Logger - Basic Functionality', async t => {
   const testLogDir = path.join(__dirname, 'test-logs');
   await fs.ensureDir(testLogDir);
-  
+
   const logger = new Logger(testLogDir);
 
   await t.test('should create log files', async () => {
     logger.info('Test log message');
-    
+
     // Wait a moment for file write
     await new Promise(resolve => setTimeout(resolve, 100));
-    
+
     const logFiles = await fs.readdir(testLogDir);
     assert.ok(logFiles.some(file => file.includes('combined')));
     assert.ok(logFiles.some(file => file.includes('error')));
@@ -62,17 +62,17 @@ test('Logger - Basic Functionality', async (t) => {
   await fs.remove(testLogDir);
 });
 
-test('Logger - Specialized Logging Methods', async (t) => {
+test('Logger - Specialized Logging Methods', async t => {
   const testLogDir = path.join(__dirname, 'test-logs-specialized');
   await fs.ensureDir(testLogDir);
-  
+
   const logger = new Logger(testLogDir);
 
   await t.test('should log audit events', async () => {
     logger.audit('User login attempt', {
       username: 'testuser',
       ip: '127.0.0.1',
-      success: true
+      success: true,
     });
 
     await new Promise(resolve => setTimeout(resolve, 100));
@@ -91,7 +91,7 @@ test('Logger - Specialized Logging Methods', async (t) => {
     logger.security('Potential brute force attack', {
       ip: '192.168.1.100',
       attempts: 5,
-      timeWindow: '5 minutes'
+      timeWindow: '5 minutes',
     });
 
     await new Promise(resolve => setTimeout(resolve, 100));
@@ -110,7 +110,7 @@ test('Logger - Specialized Logging Methods', async (t) => {
       endpoint: '/api/config',
       method: 'GET',
       responseTime: 150,
-      statusCode: 200
+      statusCode: 200,
     });
 
     await new Promise(resolve => setTimeout(resolve, 100));
@@ -129,7 +129,7 @@ test('Logger - Specialized Logging Methods', async (t) => {
     logger.robot('Robot movement command', {
       command: 'move',
       axes: { x: 100, y: 200, z: 50 },
-      user: 'operator1'
+      user: 'operator1',
     });
 
     await new Promise(resolve => setTimeout(resolve, 100));
@@ -148,7 +148,7 @@ test('Logger - Specialized Logging Methods', async (t) => {
     logger.hardware('Serial connection established', {
       port: 'COM3',
       baudRate: 115200,
-      protocol: 'serial'
+      protocol: 'serial',
     });
 
     await new Promise(resolve => setTimeout(resolve, 100));
@@ -168,10 +168,10 @@ test('Logger - Specialized Logging Methods', async (t) => {
   await fs.remove(testLogDir);
 });
 
-test('Logger - Express Middleware', async (t) => {
+test('Logger - Express Middleware', async t => {
   const testLogDir = path.join(__dirname, 'test-logs-middleware');
   await fs.ensureDir(testLogDir);
-  
+
   const logger = new Logger(testLogDir);
   const express = require('express');
   const request = require('supertest');
@@ -183,9 +183,7 @@ test('Logger - Express Middleware', async (t) => {
       res.json({ success: true });
     });
 
-    await request(app)
-      .get('/test')
-      .expect(200);
+    await request(app).get('/test').expect(200);
 
     await new Promise(resolve => setTimeout(resolve, 100));
 
@@ -208,9 +206,7 @@ test('Logger - Express Middleware', async (t) => {
       }, 50);
     });
 
-    await request(app)
-      .get('/slow')
-      .expect(200);
+    await request(app).get('/slow').expect(200);
 
     await new Promise(resolve => setTimeout(resolve, 150));
 
@@ -229,10 +225,10 @@ test('Logger - Express Middleware', async (t) => {
   await fs.remove(testLogDir);
 });
 
-test('Logger - Error Handling', async (t) => {
+test('Logger - Error Handling', async t => {
   const testLogDir = path.join(__dirname, 'test-logs-errors');
   await fs.ensureDir(testLogDir);
-  
+
   const logger = new Logger(testLogDir);
   const express = require('express');
   const request = require('supertest');
@@ -257,7 +253,7 @@ test('Logger - Error Handling', async (t) => {
   await t.test('should use error middleware', async () => {
     const app = express();
     app.use(logger.requestMiddleware());
-    
+
     app.get('/error', (req, res, next) => {
       const error = new Error('Route error');
       next(error);
@@ -265,9 +261,7 @@ test('Logger - Error Handling', async (t) => {
 
     app.use(logger.errorMiddleware());
 
-    const response = await request(app)
-      .get('/error')
-      .expect(500);
+    const response = await request(app).get('/error').expect(500);
 
     await new Promise(resolve => setTimeout(resolve, 100));
 
@@ -283,13 +277,13 @@ test('Logger - Error Handling', async (t) => {
   await fs.remove(testLogDir);
 });
 
-test('Logger - Log Rotation', async (t) => {
+test('Logger - Log Rotation', async t => {
   const testLogDir = path.join(__dirname, 'test-logs-rotation');
   await fs.ensureDir(testLogDir);
-  
+
   const logger = new Logger(testLogDir, {
     maxSize: '1k', // Very small for testing
-    maxFiles: 3
+    maxFiles: 3,
   });
 
   await t.test('should rotate logs when size limit reached', async () => {
@@ -312,7 +306,7 @@ test('Logger - Log Rotation', async (t) => {
   await fs.remove(testLogDir);
 });
 
-test('Logger - Configuration', async (t) => {
+test('Logger - Configuration', async t => {
   const testLogDir = path.join(__dirname, 'test-logs-config');
   await fs.ensureDir(testLogDir);
 
@@ -321,7 +315,7 @@ test('Logger - Configuration', async (t) => {
       level: 'warn',
       maxSize: '10m',
       maxFiles: 10,
-      datePattern: 'YYYY-MM-DD-HH'
+      datePattern: 'YYYY-MM-DD-HH',
     };
 
     const logger = new Logger(testLogDir, customConfig);
@@ -337,7 +331,7 @@ test('Logger - Configuration', async (t) => {
 
   await t.test('should handle invalid log directory gracefully', () => {
     const invalidDir = '/invalid/path/that/does/not/exist';
-    
+
     // Should not throw error
     assert.doesNotThrow(() => {
       new Logger(invalidDir);

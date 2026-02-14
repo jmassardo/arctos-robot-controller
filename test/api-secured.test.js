@@ -8,13 +8,18 @@ const path = require('path');
 const express = require('express');
 const AuthService = require('../lib/auth');
 const Logger = require('../lib/logger');
-const { rateLimits, validateInput, securityMiddleware, threatDetection } = require('../lib/security');
+const {
+  rateLimits,
+  validateInput,
+  securityMiddleware,
+  threatDetection,
+} = require('../lib/security');
 
 // Create test app
 function createSecuredApp() {
   const testDataDir = path.join(__dirname, 'test-app-data');
   const testLogDir = path.join(__dirname, 'test-app-logs');
-  
+
   const app = express();
   const authService = new AuthService(testDataDir);
   const logger = new Logger(testLogDir);
@@ -43,7 +48,7 @@ function createSecuredApp() {
     next();
   };
 
-  const requireRole = (roles) => {
+  const requireRole = roles => {
     return (req, res, next) => {
       if (!req.user) {
         return res.status(401).json({ success: false, error: 'Authentication required' });
@@ -61,7 +66,7 @@ function createSecuredApp() {
   app.post('/auth/login', rateLimits.auth, validateInput.userLogin, async (req, res) => {
     const { username, password } = req.body;
     const result = await authService.login(username, password, req.ip);
-    
+
     if (result.success) {
       res.json(result);
     } else {
@@ -71,7 +76,7 @@ function createSecuredApp() {
 
   app.post('/auth/register', rateLimits.auth, validateInput.userCreation, async (req, res) => {
     const result = await authService.createUser(req.body);
-    
+
     if (result.success) {
       res.status(201).json(result);
     } else {
@@ -92,12 +97,13 @@ function createSecuredApp() {
       config: {
         robotType: 'mks57d',
         communicationProtocol: 'serial',
-        axes: { count: 6 }
-      }
+        axes: { count: 6 },
+      },
     });
   });
 
-  app.post('/api/config', 
+  app.post(
+    '/api/config',
     authenticateToken,
     requireRole(['admin', 'operator']),
     rateLimits.api,
@@ -107,7 +113,8 @@ function createSecuredApp() {
     }
   );
 
-  app.post('/api/positions',
+  app.post(
+    '/api/positions',
     authenticateToken,
     requireRole(['admin', 'operator']),
     rateLimits.api,
@@ -117,7 +124,8 @@ function createSecuredApp() {
     }
   );
 
-  app.post('/api/robot/move',
+  app.post(
+    '/api/robot/move',
     authenticateToken,
     requireRole(['admin', 'operator']),
     rateLimits.robotControl,
@@ -126,28 +134,20 @@ function createSecuredApp() {
     }
   );
 
-  app.get('/api/users',
-    authenticateToken,
-    requireRole(['admin']),
-    (req, res) => {
-      res.json({ success: true, users: [] });
-    }
-  );
+  app.get('/api/users', authenticateToken, requireRole(['admin']), (req, res) => {
+    res.json({ success: true, users: [] });
+  });
 
-  app.get('/api/audit/logs',
-    authenticateToken,
-    requireRole(['admin']),
-    (req, res) => {
-      res.json({ success: true, logs: [], total: 0 });
-    }
-  );
+  app.get('/api/audit/logs', authenticateToken, requireRole(['admin']), (req, res) => {
+    res.json({ success: true, logs: [], total: 0 });
+  });
 
   app.use(logger.errorMiddleware());
 
   return { app, authService, logger, testDataDir, testLogDir };
 }
 
-test('Secured API Integration Tests', async (t) => {
+test('Secured API Integration Tests', async t => {
   let testApp, authService, logger, testDataDir, testLogDir;
 
   // Setup
@@ -167,21 +167,21 @@ test('Secured API Integration Tests', async (t) => {
       username: 'testadmin',
       password: 'AdminPass123!',
       email: 'admin@test.com',
-      role: 'admin'
+      role: 'admin',
     });
 
     await authService.createUser({
       username: 'testoperator',
       password: 'OpPass123!',
       email: 'operator@test.com',
-      role: 'operator'
+      role: 'operator',
     });
 
     await authService.createUser({
       username: 'testviewer',
       password: 'ViewPass123!',
       email: 'viewer@test.com',
-      role: 'viewer'
+      role: 'viewer',
     });
   });
 
@@ -191,19 +191,16 @@ test('Secured API Integration Tests', async (t) => {
     await fs.remove(testLogDir);
   });
 
-  await t.test('Authentication Flow', async (st) => {
+  await t.test('Authentication Flow', async st => {
     await st.test('should register new user with valid data', async () => {
       const userData = {
         username: 'newuser',
         password: 'NewPass123!',
         email: 'newuser@test.com',
-        role: 'operator'
+        role: 'operator',
       };
 
-      const response = await request(testApp)
-        .post('/auth/register')
-        .send(userData)
-        .expect(201);
+      const response = await request(testApp).post('/auth/register').send(userData).expect(201);
 
       assert.ok(response.body.success);
       assert.ok(response.body.user);
@@ -215,13 +212,10 @@ test('Secured API Integration Tests', async (t) => {
         username: 'nu', // Too short
         password: '123', // Too weak
         email: 'invalid-email',
-        role: 'invalid-role'
+        role: 'invalid-role',
       };
 
-      const response = await request(testApp)
-        .post('/auth/register')
-        .send(userData)
-        .expect(400);
+      const response = await request(testApp).post('/auth/register').send(userData).expect(400);
 
       assert.ok(!response.body.success);
       assert.ok(response.body.errors);
@@ -230,13 +224,10 @@ test('Secured API Integration Tests', async (t) => {
     await st.test('should login with valid credentials', async () => {
       const credentials = {
         username: 'testadmin',
-        password: 'AdminPass123!'
+        password: 'AdminPass123!',
       };
 
-      const response = await request(testApp)
-        .post('/auth/login')
-        .send(credentials)
-        .expect(200);
+      const response = await request(testApp).post('/auth/login').send(credentials).expect(200);
 
       assert.ok(response.body.success);
       assert.ok(response.body.accessToken);
@@ -247,13 +238,10 @@ test('Secured API Integration Tests', async (t) => {
     await st.test('should not login with invalid credentials', async () => {
       const credentials = {
         username: 'testadmin',
-        password: 'wrongpassword'
+        password: 'wrongpassword',
       };
 
-      const response = await request(testApp)
-        .post('/auth/login')
-        .send(credentials)
-        .expect(401);
+      const response = await request(testApp).post('/auth/login').send(credentials).expect(401);
 
       assert.ok(!response.body.success);
       assert.ok(response.body.error);
@@ -262,28 +250,22 @@ test('Secured API Integration Tests', async (t) => {
     await st.test('should detect login rate limiting', async () => {
       const credentials = {
         username: 'testadmin',
-        password: 'wrongpassword'
+        password: 'wrongpassword',
       };
 
       // Make 5 failed attempts
       for (let i = 0; i < 5; i++) {
-        await request(testApp)
-          .post('/auth/login')
-          .send(credentials)
-          .expect(401);
+        await request(testApp).post('/auth/login').send(credentials).expect(401);
       }
 
       // 6th attempt should be rate limited
-      const response = await request(testApp)
-        .post('/auth/login')
-        .send(credentials)
-        .expect(429);
+      const response = await request(testApp).post('/auth/login').send(credentials).expect(429);
 
       assert.ok(response.body.error.includes('Too many'));
     });
   });
 
-  await t.test('Role-Based Access Control', async (st) => {
+  await t.test('Role-Based Access Control', async st => {
     let adminToken, operatorToken, viewerToken;
 
     // Get tokens for each role
@@ -328,7 +310,7 @@ test('Secured API Integration Tests', async (t) => {
       const configData = {
         robotType: 'mks57d',
         communicationProtocol: 'serial',
-        axes: { count: 6 }
+        axes: { count: 6 },
       };
 
       // Admin should succeed
@@ -394,7 +376,7 @@ test('Secured API Integration Tests', async (t) => {
     });
   });
 
-  await t.test('Input Validation', async (st) => {
+  await t.test('Input Validation', async st => {
     let adminToken;
 
     await st.before(async () => {
@@ -408,7 +390,7 @@ test('Secured API Integration Tests', async (t) => {
       const validConfig = {
         robotType: 'mks57d',
         communicationProtocol: 'serial',
-        axes: { count: 6 }
+        axes: { count: 6 },
       };
 
       await request(testApp)
@@ -420,7 +402,7 @@ test('Secured API Integration Tests', async (t) => {
       const invalidConfig = {
         robotType: '', // Invalid
         communicationProtocol: 'invalid-protocol',
-        axes: { count: 'not-a-number' }
+        axes: { count: 'not-a-number' },
       };
 
       const response = await request(testApp)
@@ -437,7 +419,7 @@ test('Secured API Integration Tests', async (t) => {
         name: 'Test Position',
         axes: { x: 100, y: 200, z: 300 },
         manipulators: { gripper: 50 },
-        delay: 1000
+        delay: 1000,
       };
 
       await request(testApp)
@@ -450,7 +432,7 @@ test('Secured API Integration Tests', async (t) => {
         name: '', // Invalid
         axes: { x: 'not-a-number' },
         manipulators: { gripper: -10 },
-        delay: 'invalid'
+        delay: 'invalid',
       };
 
       const response = await request(testApp)
@@ -463,7 +445,7 @@ test('Secured API Integration Tests', async (t) => {
     });
   });
 
-  await t.test('Security Features', async (st) => {
+  await t.test('Security Features', async st => {
     let operatorToken;
 
     await st.before(async () => {
@@ -476,7 +458,7 @@ test('Secured API Integration Tests', async (t) => {
     await st.test('should detect threat attempts', async () => {
       const maliciousData = {
         name: '<script>alert("xss")</script>',
-        command: 'ls; rm -rf /'
+        command: 'ls; rm -rf /',
       };
 
       const response = await request(testApp)
@@ -522,11 +504,9 @@ test('Secured API Integration Tests', async (t) => {
     });
   });
 
-  await t.test('Unauthorized Access', async (st) => {
+  await t.test('Unauthorized Access', async st => {
     await st.test('should reject requests without token', async () => {
-      await request(testApp)
-        .get('/api/config')
-        .expect(401);
+      await request(testApp).get('/api/config').expect(401);
     });
 
     await st.test('should reject requests with invalid token', async () => {
@@ -537,10 +517,7 @@ test('Secured API Integration Tests', async (t) => {
     });
 
     await st.test('should reject requests with malformed auth header', async () => {
-      await request(testApp)
-        .get('/api/config')
-        .set('Authorization', 'InvalidFormat')
-        .expect(401);
+      await request(testApp).get('/api/config').set('Authorization', 'InvalidFormat').expect(401);
     });
   });
 });

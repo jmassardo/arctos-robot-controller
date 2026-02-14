@@ -1,0 +1,30 @@
+{
+  "name": "arctos-robot-controller-comprehensive-tests",
+  "version": "1.0.0",
+  "description": "Comprehensive test suite for 100% code and UI coverage",
+  "scripts": {
+    "test": "npm run test:backend && npm run test:frontend && npm run test:e2e",
+    "test:backend": "node --test test/*.test.js",
+    "test:backend:unit": "node --test test/comprehensive-unit-tests.js",
+    "test:backend:coverage": "c8 node --test test/*.test.js",
+    "test:frontend": "cd client && npm test -- --coverage --watchAll=false --passWithNoTests",
+    "test:frontend:unit": "cd client && npm test -- --testPathPattern=components-comprehensive.test.tsx --coverage --watchAll=false",
+    "test:frontend:specialized": "cd client && npm test -- --testPathPattern=manual-control-specialized.test.tsx --coverage --watchAll=false",
+    "test:e2e": "npx playwright test e2e-tests/comprehensive-e2e.spec.ts",
+    "test:e2e:headed": "npx playwright test e2e-tests/comprehensive-e2e.spec.ts --headed",
+    "test:all": "npm run test:backend:coverage && npm run test:frontend && npm run test:e2e",
+    "test:coverage": "npm run test:backend:coverage && npm run test:frontend && echo 'Coverage reports generated'",
+    "test:integration": "npm run start:test-server & sleep 5 && npm run test:e2e && kill %1",
+    "start:test-server": "NODE_ENV=test PORT=3001 node server.js",
+    "test:performance": "npx playwright test e2e-tests/comprehensive-e2e.spec.ts --grep 'Performance'",
+    "test:accessibility": "npx playwright test e2e-tests/comprehensive-e2e.spec.ts --grep 'Accessibility'",
+    "test:mobile": "npx playwright test e2e-tests/comprehensive-e2e.spec.ts --project=mobile",
+    "test:smoke": "npx playwright test e2e-tests/comprehensive-e2e.spec.ts --grep 'should display main application interface|should establish WebSocket connection'",
+    "test:stress": "for i in {1..10}; do npm run test:e2e; done",
+    "coverage:report": "npm run test:backend:coverage && cd client && npm test -- --coverage --watchAll=false && npx nyc report --reporter=html --report-dir=../coverage/combined"
+  },
+  "devDependencies": {
+    "c8": "^8.0.1",
+    "nyc": "^15.1.0"
+  }
+}

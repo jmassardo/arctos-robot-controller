@@ -41,3 +41,11 @@ Thumbs.db
 # Temporary files
 tmp/
 temp/
+
+# Docker volumes and logs
+docker-data/
+docker-logs/
+
+# Environment files (but keep .env.docker as template)
+.env.local
+.env.productiontest/test-logs*/

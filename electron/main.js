@@ -22,10 +22,10 @@ function createMenu() {
               properties: ['openFile'],
               filters: [
                 { name: 'G-Code Files', extensions: ['gcode', 'nc', 'cnc', 'txt'] },
-                { name: 'All Files', extensions: ['*'] }
-              ]
+                { name: 'All Files', extensions: ['*'] },
+              ],
             });
-            
+
             if (!result.canceled && result.filePaths.length > 0) {
               const filePath = result.filePaths[0];
               try {
@@ -35,7 +35,7 @@ function createMenu() {
                 dialog.showErrorBox('Error', `Failed to load G-Code file: ${error.message}`);
               }
             }
-          }
+          },
         },
         { type: 'separator' },
         {
@@ -43,9 +43,9 @@ function createMenu() {
           accelerator: 'CmdOrCtrl+Q',
           click: () => {
             app.quit();
-          }
-        }
-      ]
+          },
+        },
+      ],
     },
     {
       label: 'Edit',
@@ -56,8 +56,8 @@ function createMenu() {
         { role: 'cut' },
         { role: 'copy' },
         { role: 'paste' },
-        { role: 'selectall' }
-      ]
+        { role: 'selectall' },
+      ],
     },
     {
       label: 'View',
@@ -70,8 +70,8 @@ function createMenu() {
         { role: 'zoomIn' },
         { role: 'zoomOut' },
         { type: 'separator' },
-        { role: 'togglefullscreen' }
-      ]
+        { role: 'togglefullscreen' },
+      ],
     },
     {
       label: 'Robot',
@@ -81,23 +81,23 @@ function createMenu() {
           accelerator: 'Escape',
           click: () => {
             mainWindow.webContents.send('emergency-stop');
-          }
+          },
         },
         {
           label: 'Home All Axes',
           accelerator: 'CmdOrCtrl+H',
           click: () => {
             mainWindow.webContents.send('home-all-axes');
-          }
+          },
         },
         { type: 'separator' },
         {
           label: 'Reset Position',
           click: () => {
             mainWindow.webContents.send('reset-position');
-          }
-        }
-      ]
+          },
+        },
+      ],
     },
     {
       label: 'Help',
@@ -109,18 +109,19 @@ function createMenu() {
               type: 'info',
               title: 'About Arctos Robot Controller',
               message: 'Arctos Robot Controller',
-              detail: 'Desktop application for controlling multi-axis robotic arms\\n\\nVersion: 1.0.0\\nAuthor: Arctos Robotics'
+              detail:
+                'Desktop application for controlling multi-axis robotic arms\\n\\nVersion: 1.0.0\\nAuthor: Arctos Robotics',
             });
-          }
+          },
         },
         {
           label: 'Documentation',
           click: () => {
             shell.openExternal('https://github.com/jmassardo/arctos-robot-controller');
-          }
-        }
-      ]
-    }
+          },
+        },
+      ],
+    },
   ];
 
   // macOS specific menu adjustments
@@ -136,8 +137,8 @@ function createMenu() {
         { role: 'hideothers' },
         { role: 'unhide' },
         { type: 'separator' },
-        { role: 'quit' }
-      ]
+        { role: 'quit' },
+      ],
     });
   }
 
@@ -156,12 +157,12 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
       enableRemoteModule: false,
-      preload: path.join(__dirname, 'preload.js')
+      preload: path.join(__dirname, 'preload.js'),
     },
     icon: path.join(__dirname, '../assets/icon.png'), // We'll create this
     title: 'Arctos Robot Controller',
     titleBarStyle: 'default',
-    show: false // Don't show until ready
+    show: false, // Don't show until ready
   });
 
   // Wait for server to be ready then load the app
@@ -174,7 +175,7 @@ function createWindow() {
   // Show window when ready
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
-    
+
     // Focus on the app
     if (isDev) {
       mainWindow.webContents.openDevTools();
@@ -203,10 +204,10 @@ function startServer() {
       // Set Electron environment variable
       process.env.ELECTRON = 'true';
       process.env.NODE_ENV = 'production';
-      
+
       // Import and start the server
       server = require('../server.js');
-      
+
       // Give the server a moment to start
       setTimeout(() => {
         console.log(`Electron server started on port ${PORT}`);
@@ -224,13 +225,12 @@ app.whenReady().then(async () => {
   try {
     // Start the Express server first
     await startServer();
-    
+
     // Create the main window
     createWindow();
-    
+
     // Create application menu
     createMenu();
-    
   } catch (error) {
     console.error('Failed to start application:', error);
     dialog.showErrorBox('Startup Error', `Failed to start application: ${error.message}`);

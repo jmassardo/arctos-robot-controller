@@ -1,0 +1,237 @@
+# SRE Enhanced Prometheus Configuration
+# Custom metrics collection for robot control systems
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'arctos-robot-controller'
+    environment: 'production'
+
+rule_files:
+  - "rules/*.yml"
+  - "sre-rules/*.yml"  # SRE-specific alerting rules
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
+scrape_configs:
+  # Existing scrape jobs (maintained from DevOps setup)
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+
+  - job_name: 'redis-exporter'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+
+  # Enhanced Arctos Robot Controller metrics
+  - job_name: 'arctos-robot-controller'
+    static_configs:
+      - targets: ['arctos-robot-controller:5000']
+    metrics_path: /metrics
+    scrape_interval: 10s  # Increased frequency for robot control
+    scrape_timeout: 5s
+    params:
+      format: ['prometheus']
+
+  # SRE Custom Metrics - Robot Hardware Interfaces
+  - job_name: 'robot-hardware-metrics'
+    static_configs:
+      - targets: ['arctos-robot-controller:5001']  # Custom metrics endpoint
+    metrics_path: /hardware-metrics
+    scrape_interval: 5s   # High frequency for hardware monitoring
+    scrape_timeout: 3s
+
+  # SRE Custom Metrics - WebSocket Performance
+  - job_name: 'websocket-metrics'
+    static_configs:
+      - targets: ['arctos-robot-controller:5002']  # WebSocket metrics endpoint
+    metrics_path: /websocket-metrics
+    scrape_interval: 10s
+    scrape_timeout: 5s
+
+  # SRE Custom Metrics - G-Code Execution Performance
+  - job_name: 'gcode-execution-metrics'
+    static_configs:
+      - targets: ['arctos-robot-controller:5003']  # G-code metrics endpoint
+    metrics_path: /gcode-metrics
+    scrape_interval: 15s
+    scrape_timeout: 10s
+
+  # SRE Custom Metrics - User Experience (RUM)
+  - job_name: 'user-experience-metrics'
+    static_configs:
+      - targets: ['arctos-robot-controller:5004']  # UX metrics endpoint
+    metrics_path: /ux-metrics
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+  # SRE Custom Metrics - Security Events
+  - job_name: 'security-metrics'
+    static_configs:
+      - targets: ['arctos-robot-controller:5005']  # Security metrics endpoint
+    metrics_path: /security-metrics
+    scrape_interval: 10s
+    scrape_timeout: 5s
+
+  # Database Performance (PostgreSQL for production)
+  - job_name: 'postgres-exporter'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+    scrape_interval: 30s
+
+  # Application Load Balancer metrics (if using ALB)
+  - job_name: 'alb-metrics'
+    static_configs:
+      - targets: ['alb-exporter:9100']
+    scrape_interval: 60s
+
+  # Synthetic Monitoring - Health Checks
+  - job_name: 'synthetic-monitoring'
+    static_configs:
+      - targets: ['blackbox-exporter:9115']
+    metrics_path: /probe
+    params:
+      module: [http_2xx]  # Health check module
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+
+  # Kubernetes Cluster Metrics (if deployed on K8s)
+  - job_name: 'kubernetes-apiservers'
+    kubernetes_sd_configs:
+      - role: endpoints
+    scheme: https
+    tls_config:
+      ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+    bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+        action: keep
+        regex: default;kubernetes;https
+
+  - job_name: 'kubernetes-nodes'
+    kubernetes_sd_configs:
+      - role: node
+    scheme: https
+    tls_config:
+      ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+    bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+    relabel_configs:
+      - action: labelmap
+        regex: __meta_kubernetes_node_label_(.+)
+      - target_label: __address__
+        replacement: kubernetes.default.svc:443
+      - source_labels: [__meta_kubernetes_node_name]
+        regex: (.+)
+        target_label: __metrics_path__
+        replacement: /api/v1/nodes/${1}/proxy/metrics
+
+# Recording Rules for SLI Calculations
+recording_rules:
+  - name: 'sli-calculations'
+    interval: 30s
+    rules:
+      # Robot Command Success Rate
+      - record: robot_command_success_rate
+        expr: |
+          rate(robot_commands_total{status="success"}[5m]) / 
+          rate(robot_commands_total[5m]) * 100
+
+      # Robot Command Latency Percentiles
+      - record: robot_command_latency_p50
+        expr: |
+          histogram_quantile(0.50, 
+            rate(robot_command_duration_seconds_bucket[5m]))
+
+      - record: robot_command_latency_p95
+        expr: |
+          histogram_quantile(0.95, 
+            rate(robot_command_duration_seconds_bucket[5m]))
+
+      - record: robot_command_latency_p99
+        expr: |
+          histogram_quantile(0.99, 
+            rate(robot_command_duration_seconds_bucket[5m]))
+
+      # API Success Rate
+      - record: api_success_rate
+        expr: |
+          rate(http_requests_total{status!~"4..|5.."}[5m]) / 
+          rate(http_requests_total[5m]) * 100
+
+      # API Response Time Percentiles
+      - record: api_response_time_p95
+        expr: |
+          histogram_quantile(0.95, 
+            rate(http_request_duration_seconds_bucket[5m]))
+
+      # WebSocket Connection Stability
+      - record: websocket_connection_stability
+        expr: |
+          websocket_connections_stable / websocket_connections_total * 100
+
+      # Hardware Communication Uptime
+      - record: hardware_communication_uptime
+        expr: |
+          (time() - hardware_connection_downtime_seconds) / time() * 100
+
+      # Error Budget Consumption (30-day rolling window)
+      - record: error_budget_consumption_robot_commands
+        expr: |
+          (1 - (
+            increase(robot_commands_total{status="success"}[30d]) / 
+            increase(robot_commands_total[30d])
+          )) / 0.01 * 100  # 99% SLO = 1% error budget
+
+      - record: error_budget_consumption_api
+        expr: |
+          (1 - (
+            increase(http_requests_total{status!~"4..|5.."}[30d]) / 
+            increase(http_requests_total[30d])
+          )) / 0.001 * 100  # 99.9% SLO = 0.1% error budget
+
+# Alertmanager Integration
+alerting:
+  alert_relabel_configs:
+    # Add SRE context to alerts
+    - source_labels: [__name__]
+      target_label: sre_component
+      regex: 'robot_.*'
+      replacement: 'robot_control'
+    
+    - source_labels: [__name__]
+      target_label: sre_component
+      regex: 'http_.*'
+      replacement: 'web_api'
+    
+    - source_labels: [__name__]
+      target_label: sre_component
+      regex: 'websocket_.*'
+      replacement: 'realtime_communication'
+
+# Remote Write (for long-term storage)
+remote_write:
+  - url: "https://prometheus-remote-write.monitoring.svc.cluster.local/write"
+    basic_auth:
+      username: prometheus
+      password_file: /etc/prometheus/remote-write-password
+
+# Remote Read (for federation or long-term queries)
+remote_read:
+  - url: "https://prometheus-remote-read.monitoring.svc.cluster.local/read"
+    basic_auth:
+      username: prometheus
+      password_file: /etc/prometheus/remote-read-password

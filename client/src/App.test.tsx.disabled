@@ -1,0 +1,571 @@
+import React from 'react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import '@testing-library/jest-dom';
+
+// Mock Socket.IO client
+jest.mock('socket.io-client', () => ({
+  io: jest.fn(() => ({
+    on: jest.fn(),
+    emit: jest.fn(),
+    off: jest.fn(),
+    disconnect: jest.fn(),
+  }))
+}));
+
+// Mock axios
+jest.mock('axios', () => ({
+  get: jest.fn(() => Promise.resolve({ data: {} })),
+  post: jest.fn(() => Promise.resolve({ data: {} })),
+  put: jest.fn(() => Promise.resolve({ data: {} })),
+  delete: jest.fn(() => Promise.resolve({ data: {} }))
+}));
+
+// Test data
+const mockRobotConfig = {
+  robotType: '6-axis',
+  communicationProtocol: 'CAN',
+  axes: {
+    axis1: { name: 'Base', minValue: -180, maxValue: 180, defaultSpeed: 50 },
+    axis2: { name: 'Shoulder', minValue: -90, maxValue: 90, defaultSpeed: 50 },
+    axis3: { name: 'Elbow', minValue: -180, maxValue: 180, defaultSpeed: 50 }
+  },
+  gripper: { name: 'Gripper', openValue: 0, closeValue: 100, defaultSpeed: 30 }
+};
+
+const mockPositions = [
+  {
+    id: '1',
+    name: 'Home Position',
+    position: { axis1: 0, axis2: 0, axis3: 0 },
+    gripper: 0,
+    timestamp: '2024-01-01T00:00:00Z'
+  },
+  {
+    id: '2',
+    name: 'Work Position',
+    position: { axis1: 45, axis2: -30, axis3: 60 },
+    gripper: 50,
+    timestamp: '2024-01-01T01:00:00Z'
+  }
+];
+
+// Component Test Utilities
+interface RobotAxis {
+  name: string;
+  min?: number;
+  max?: number;
+}
+
+interface RobotConfig {
+  robotType: string;
+  communicationProtocol?: string;
+  axes: Record<string, RobotAxis>;
+}
+
+interface MockManualControlProps {
+  config: RobotConfig;
+  onJog: (axisId: string, amount: number) => void;
+  onGripper: (action: string) => void;
+  onSavePosition: (name: string) => void;
+}
+
+const MockManualControl = ({ config, onJog, onGripper, onSavePosition }: MockManualControlProps) => (
+  <div data-testid="manual-control">
+    <h2>Manual Control</h2>
+    {config && Object.entries(config.axes).map(([axisId, axis]) => (
+      <div key={axisId} data-testid={`axis-${axisId}`}>
+        <span>{axis.name}: </span>
+        <button onClick={() => onJog(axisId, 10)}>+</button>
+        <button onClick={() => onJog(axisId, -10)}>-</button>
+      </div>
+    ))}
+    <div data-testid="gripper-controls">
+      <button onClick={() => onGripper('open')}>Open</button>
+      <button onClick={() => onGripper('close')}>Close</button>
+    </div>
+    <div data-testid="position-save">
+      <input data-testid="position-name" placeholder="Position Name" />
+      <button onClick={() => onSavePosition('test-position')}>Save Position</button>
+    </div>
+  </div>
+);
+
+interface MockGCodeControlProps {
+  onLoadSample: () => void;
+  onExecute: () => void;
+}
+
+const MockGCodeControl = ({ onLoadSample, onExecute }: MockGCodeControlProps) => (
+  <div data-testid="gcode-control">
+    <h2>G-Code Control</h2>
+    <textarea data-testid="gcode-input" placeholder="Enter G-code commands..." />
+    <div>
+      <button onClick={onLoadSample}>Load Sample</button>
+      <button onClick={onExecute}>Execute G-Code</button>
+    </div>
+  </div>
+);
+
+interface MockPositionReplayProps {
+  positions: Array<{ id: string; name: string }>;
+  onReplay: (positionIds: string[]) => void;
+}
+
+const MockPositionReplay = ({ positions, onReplay }: MockPositionReplayProps) => (
+  <div data-testid="position-replay">
+    <h2>Position Replay</h2>
+    {positions.map(position => (
+      <div key={position.id} data-testid={`position-${position.id}`}>
+        <input type="checkbox" data-testid={`checkbox-${position.id}`} />
+        <span>{position.name}</span>
+      </div>
+    ))}
+    <button onClick={() => onReplay(['1'])}>Replay Selected</button>
+  </div>
+);
+
+interface MockConfigurationProps {
+  config: RobotConfig;
+  onChange: (key: string, value: any) => void;
+  onSave: () => void;
+}
+
+const MockConfiguration = ({ config, onChange, onSave }: MockConfigurationProps) => (
+  <div data-testid="configuration">
+    <h2>Configuration</h2>
+    <select 
+      data-testid="robot-type" 
+      value={config?.robotType || ''} 
+      onChange={(e) => onChange('robotType', e.target.value)}
+    >
+      <option value="6-axis">6-Axis Robot</option>
+      <option value="4-axis">4-Axis Robot</option>
+    </select>
+    <select 
+      data-testid="protocol" 
+      value={config?.communicationProtocol || ''} 
+      onChange={(e) => onChange('communicationProtocol', e.target.value)}
+    >
+      <option value="CAN">CAN Bus</option>
+      <option value="Serial">Serial</option>
+    </select>
+    <button onClick={onSave}>Save Configuration</button>
+  </div>
+);
+
+// Main App Mock Component
+const MockApp = () => {
+  const [activeTab, setActiveTab] = React.useState('manual');
+  const [config, setConfig] = React.useState(mockRobotConfig);
+  const [positions, setPositions] = React.useState(mockPositions);
+  const [currentPosition, setCurrentPosition] = React.useState({ axis1: 0, axis2: 0, axis3: 0 });
+  const [status, setStatus] = React.useState('Ready');
+
+  const handleJog = (axisId: string, amount: number) => {
+    setCurrentPosition((prev: any) => ({
+      ...prev,
+      [axisId]: prev[axisId] + amount
+    }));
+  };
+
+  const handleGripper = (action: string) => {
+    setStatus(`Gripper ${action}`);
+  };
+
+  const handleSavePosition = (name: string) => {
+    const newPosition = {
+      id: Date.now().toString(),
+      name,
+      position: currentPosition,
+      gripper: 0,
+      timestamp: new Date().toISOString()
+    };
+    setPositions(prev => [...prev, newPosition]);
+  };
+
+  const handleLoadSample = () => {
+    setStatus('Sample G-code loaded');
+  };
+
+  const handleExecute = () => {
+    setStatus('Executing G-code');
+  };
+
+  const handleReplay = (positionIds: string[]) => {
+    setStatus(`Replaying positions: ${positionIds.join(', ')}`);
+  };
+
+  const handleConfigChange = (key: string, value: any) => {
+    setConfig((prev: any) => ({ ...prev, [key]: value }));
+  };
+
+  const handleConfigSave = () => {
+    setStatus('Configuration saved');
+  };
+
+  const renderTabContent = () => {
+    switch(activeTab) {
+      case 'manual':
+        return <MockManualControl 
+          config={config}
+          onJog={handleJog}
+          onGripper={handleGripper}
+          onSavePosition={handleSavePosition}
+        />;
+      case 'gcode':
+        return <MockGCodeControl 
+          onLoadSample={handleLoadSample}
+          onExecute={handleExecute}
+        />;
+      case 'replay':
+        return <MockPositionReplay 
+          positions={positions}
+          onReplay={handleReplay}
+        />;
+      case 'config':
+        return <MockConfiguration 
+          config={config}
+          onChange={handleConfigChange}
+          onSave={handleConfigSave}
+        />;
+      default:
+        return <div>Unknown tab</div>;
+    }
+  };
+
+  return (
+    <div data-testid="app">
+      <header data-testid="header">
+        <h1>Arctos Robot Controller</h1>
+        <div data-testid="status">Status: {status}</div>
+        <div data-testid="connection-status">Connected</div>
+      </header>
+      
+      <nav data-testid="tab-navigation">
+        <button 
+          onClick={() => setActiveTab('manual')}
+          data-testid="tab-manual"
+          className={activeTab === 'manual' ? 'active' : ''}
+        >
+          Manual Control
+        </button>
+        <button 
+          onClick={() => setActiveTab('gcode')}
+          data-testid="tab-gcode"
+          className={activeTab === 'gcode' ? 'active' : ''}
+        >
+          G-Code Control
+        </button>
+        <button 
+          onClick={() => setActiveTab('replay')}
+          data-testid="tab-replay"
+          className={activeTab === 'replay' ? 'active' : ''}
+        >
+          Position Replay
+        </button>
+        <button 
+          onClick={() => setActiveTab('config')}
+          data-testid="tab-config"
+          className={activeTab === 'config' ? 'active' : ''}
+        >
+          Configuration
+        </button>
+      </nav>
+
+      <main data-testid="main-content">
+        {renderTabContent()}
+      </main>
+
+      <footer data-testid="footer">
+        <div data-testid="current-position">
+          Position: X:{currentPosition.axis1} Y:{currentPosition.axis2} Z:{currentPosition.axis3}
+        </div>
+      </footer>
+    </div>
+  );
+};
+
+// Test Suite
+describe('Arctos Robot Controller - Comprehensive Frontend Tests', () => {
+  beforeEach(() => {
+    // Mock console methods to reduce test noise
+    global.console = {
+      ...console,
+      log: jest.fn(),
+      error: jest.fn(),
+      warn: jest.fn(),
+    };
+  });
+
+  describe('Application Structure', () => {
+    test('renders main application components', () => {
+      render(<MockApp />);
+      
+      expect(screen.getByTestId('app')).toBeInTheDocument();
+      expect(screen.getByTestId('header')).toBeInTheDocument();
+      expect(screen.getByTestId('tab-navigation')).toBeInTheDocument();
+      expect(screen.getByTestId('main-content')).toBeInTheDocument();
+      expect(screen.getByTestId('footer')).toBeInTheDocument();
+    });
+
+    test('displays correct header information', () => {
+      render(<MockApp />);
+      
+      expect(screen.getByText('Arctos Robot Controller')).toBeInTheDocument();
+      expect(screen.getByTestId('status')).toHaveTextContent('Status: Ready');
+      expect(screen.getByTestId('connection-status')).toHaveTextContent('Connected');
+    });
+
+    test('renders all tab navigation buttons', () => {
+      render(<MockApp />);
+      
+      expect(screen.getByTestId('tab-manual')).toBeInTheDocument();
+      expect(screen.getByTestId('tab-gcode')).toBeInTheDocument();
+      expect(screen.getByTestId('tab-replay')).toBeInTheDocument();
+      expect(screen.getByTestId('tab-config')).toBeInTheDocument();
+    });
+  });
+
+  describe('Tab Navigation', () => {
+    test('shows manual control tab by default', () => {
+      render(<MockApp />);
+      expect(screen.getByTestId('manual-control')).toBeInTheDocument();
+    });
+
+    test('switches between tabs correctly', async () => {
+      render(<MockApp />);
+      
+      // Default tab
+      expect(screen.getByTestId('manual-control')).toBeInTheDocument();
+      
+      // Switch to G-code tab
+      fireEvent.click(screen.getByTestId('tab-gcode'));
+      await waitFor(() => {
+        expect(screen.getByTestId('gcode-control')).toBeInTheDocument();
+      });
+      
+      // Switch to position replay tab
+      fireEvent.click(screen.getByTestId('tab-replay'));
+      await waitFor(() => {
+        expect(screen.getByTestId('position-replay')).toBeInTheDocument();
+      });
+      
+      // Switch to configuration tab
+      fireEvent.click(screen.getByTestId('tab-config'));
+      await waitFor(() => {
+        expect(screen.getByTestId('configuration')).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('Manual Control Functionality', () => {
+    test('renders axis controls correctly', () => {
+      render(<MockApp />);
+      
+      expect(screen.getByTestId('axis-axis1')).toBeInTheDocument();
+      expect(screen.getByTestId('axis-axis2')).toBeInTheDocument();
+      expect(screen.getByTestId('axis-axis3')).toBeInTheDocument();
+    });
+
+    test('handles jog button interactions', async () => {
+      render(<MockApp />);
+      
+      const axis1Plus = screen.getByTestId('axis-axis1').querySelector('button');
+      if (axis1Plus) {
+        fireEvent.click(axis1Plus);
+      }
+      
+      await waitFor(() => {
+        expect(screen.getByTestId('current-position')).toHaveTextContent('Position: X:10');
+      });
+    });
+
+    test('handles gripper controls', async () => {
+      render(<MockApp />);
+      
+      const openButton = screen.getByText('Open');
+      fireEvent.click(openButton);
+      
+      await waitFor(() => {
+        expect(screen.getByTestId('status')).toHaveTextContent('Status: Gripper open');
+      });
+    });
+
+    test('handles position saving', async () => {
+      render(<MockApp />);
+      
+      const saveButton = screen.getByText('Save Position');
+      fireEvent.click(saveButton);
+      
+      await waitFor(() => {
+        // Switch to replay tab to see if position was saved
+        fireEvent.click(screen.getByTestId('tab-replay'));
+      });
+      
+      await waitFor(() => {
+        expect(screen.getByText('test-position')).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('G-Code Control Functionality', () => {
+    test('renders g-code interface', async () => {
+      render(<MockApp />);
+      fireEvent.click(screen.getByTestId('tab-gcode'));
+      
+      await waitFor(() => {
+        expect(screen.getByTestId('gcode-input')).toBeInTheDocument();
+        expect(screen.getByText('Load Sample')).toBeInTheDocument();
+        expect(screen.getByText('Execute G-Code')).toBeInTheDocument();
+      });
+    });
+
+    test('handles sample loading', async () => {
+      render(<MockApp />);
+      fireEvent.click(screen.getByTestId('tab-gcode'));
+      
+      await waitFor(() => {
+        fireEvent.click(screen.getByText('Load Sample'));
+      });
+      
+      await waitFor(() => {
+        expect(screen.getByTestId('status')).toHaveTextContent('Status: Sample G-code loaded');
+      });
+    });
+
+    test('handles g-code execution', async () => {
+      render(<MockApp />);
+      fireEvent.click(screen.getByTestId('tab-gcode'));
+      
+      await waitFor(() => {
+        fireEvent.click(screen.getByText('Execute G-Code'));
+      });
+      
+      await waitFor(() => {
+        expect(screen.getByTestId('status')).toHaveTextContent('Status: Executing G-code');
+      });
+    });
+  });
+
+  describe('Position Replay Functionality', () => {
+    test('displays saved positions', async () => {
+      render(<MockApp />);
+      fireEvent.click(screen.getByTestId('tab-replay'));
+      
+      await waitFor(() => {
+        expect(screen.getByTestId('position-1')).toBeInTheDocument();
+        expect(screen.getByTestId('position-2')).toBeInTheDocument();
+        expect(screen.getByText('Home Position')).toBeInTheDocument();
+        expect(screen.getByText('Work Position')).toBeInTheDocument();
+      });
+    });
+
+    test('handles position replay', async () => {
+      render(<MockApp />);
+      fireEvent.click(screen.getByTestId('tab-replay'));
+      
+      await waitFor(() => {
+        fireEvent.click(screen.getByText('Replay Selected'));
+      });
+      
+      await waitFor(() => {
+        expect(screen.getByTestId('status')).toHaveTextContent('Status: Replaying positions: 1');
+      });
+    });
+  });
+
+  describe('Configuration Functionality', () => {
+    test('displays configuration options', async () => {
+      render(<MockApp />);
+      fireEvent.click(screen.getByTestId('tab-config'));
+      
+      await waitFor(() => {
+        expect(screen.getByTestId('robot-type')).toBeInTheDocument();
+        expect(screen.getByTestId('protocol')).toBeInTheDocument();
+        expect(screen.getByText('Save Configuration')).toBeInTheDocument();
+      });
+    });
+
+    test('handles configuration changes', async () => {
+      render(<MockApp />);
+      fireEvent.click(screen.getByTestId('tab-config'));
+      
+      await waitFor(() => {
+        const robotTypeSelect = screen.getByTestId('robot-type') as HTMLSelectElement;
+        fireEvent.change(robotTypeSelect, { target: { value: '4-axis' } });
+        expect(robotTypeSelect.value).toBe('4-axis');
+      });
+    });
+
+    test('handles configuration saving', async () => {
+      render(<MockApp />);
+      fireEvent.click(screen.getByTestId('tab-config'));
+      
+      await waitFor(() => {
+        fireEvent.click(screen.getByText('Save Configuration'));
+      });
+      
+      await waitFor(() => {
+        expect(screen.getByTestId('status')).toHaveTextContent('Status: Configuration saved');
+      });
+    });
+  });
+});
+
+// Integration Tests
+describe('Integration Tests', () => {
+  test('end-to-end workflow: configure, move, save position, replay', async () => {
+    render(<MockApp />);
+    
+    // 1. Configure robot
+    fireEvent.click(screen.getByTestId('tab-config'));
+    await waitFor(() => {
+      fireEvent.click(screen.getByText('Save Configuration'));
+    });
+    
+    // 2. Move axes
+    fireEvent.click(screen.getByTestId('tab-manual'));
+    await waitFor(() => {
+      const axis1Plus = screen.getByTestId('axis-axis1').querySelector('button');
+      if (axis1Plus) {
+        fireEvent.click(axis1Plus);
+      }
+    });
+    
+    // 3. Save position
+    await waitFor(() => {
+      fireEvent.click(screen.getByText('Save Position'));
+    });
+    
+    // 4. Replay position
+    fireEvent.click(screen.getByTestId('tab-replay'));
+    await waitFor(() => {
+      fireEvent.click(screen.getByText('Replay Selected'));
+    });
+    
+    await waitFor(() => {
+      expect(screen.getByTestId('status')).toHaveTextContent(/Replaying positions/);
+    });
+  });
+
+  test('maintains state across tab switches', async () => {
+    render(<MockApp />);
+    
+    // Move axis
+    const axis1Plus = screen.getByTestId('axis-axis1').querySelector('button');
+    if (axis1Plus) {
+      fireEvent.click(axis1Plus);
+    }
+    
+    // Switch to another tab and back
+    fireEvent.click(screen.getByTestId('tab-gcode'));
+    await waitFor(() => {
+      expect(screen.getByTestId('gcode-control')).toBeInTheDocument();
+    });
+    
+    fireEvent.click(screen.getByTestId('tab-manual'));
+    await waitFor(() => {
+      expect(screen.getByTestId('current-position')).toHaveTextContent('Position: X:10');
+    });
+  });
+});

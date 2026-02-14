@@ -1,0 +1,112 @@
+groups:
+  - name: arctos-robot-controller.rules
+    rules:
+      # High CPU usage
+      - alert: HighCPUUsage
+        expr: rate(process_cpu_seconds_total[5m]) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: arctos-robot-controller
+        annotations:
+          summary: "High CPU usage detected"
+          description: "CPU usage is above 80% for more than 5 minutes"
+
+      # High memory usage
+      - alert: HighMemoryUsage
+        expr: (process_resident_memory_bytes / node_memory_MemTotal_bytes) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: arctos-robot-controller
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory usage is above 80% for more than 5 minutes"
+
+      # Application is down
+      - alert: ApplicationDown
+        expr: up{job="arctos-robot-controller"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: arctos-robot-controller
+        annotations:
+          summary: "Arctos Robot Controller is down"
+          description: "The application has been down for more than 1 minute"
+
+      # High response time
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+          service: arctos-robot-controller
+        annotations:
+          summary: "High response time detected"
+          description: "95th percentile response time is above 2 seconds for more than 5 minutes"
+
+      # High error rate
+      - alert: HighErrorRate
+        expr: (rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m])) * 100 > 5
+        for: 5m
+        labels:
+          severity: critical
+          service: arctos-robot-controller
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is above 5% for more than 5 minutes"
+
+      # Database connection issues
+      - alert: DatabaseConnectionError
+        expr: increase(database_connection_errors_total[5m]) > 0
+        for: 2m
+        labels:
+          severity: critical
+          service: arctos-robot-controller
+        annotations:
+          summary: "Database connection errors detected"
+          description: "Database connection errors have been detected"
+
+      # Redis connection issues
+      - alert: RedisConnectionError
+        expr: redis_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: redis
+        annotations:
+          summary: "Redis is down"
+          description: "Redis connection is down for more than 1 minute"
+
+      # WebSocket connection issues
+      - alert: HighWebSocketDisconnects
+        expr: rate(websocket_disconnections_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          service: arctos-robot-controller
+        annotations:
+          summary: "High WebSocket disconnection rate"
+          description: "WebSocket disconnection rate is unusually high"
+
+      # Disk space usage
+      - alert: LowDiskSpace
+        expr: (node_filesystem_avail_bytes / node_filesystem_size_bytes) * 100 < 20
+        for: 5m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "Low disk space"
+          description: "Disk space usage is above 80% for more than 5 minutes"
+
+      # Container restart frequency
+      - alert: FrequentRestarts
+        expr: increase(kube_pod_container_status_restarts_total[1h]) > 3
+        for: 5m
+        labels:
+          severity: warning
+          service: arctos-robot-controller
+        annotations:
+          summary: "Container restarting frequently"
+          description: "Container has restarted more than 3 times in the last hour"

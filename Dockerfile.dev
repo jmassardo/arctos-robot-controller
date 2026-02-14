@@ -1,0 +1,27 @@
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Install development dependencies
+RUN apk add --no-cache sqlite git
+
+# Copy package files
+COPY package*.json ./
+RUN npm install
+
+# Copy frontend package files
+COPY client/package*.json ./client/
+WORKDIR /app/client
+RUN npm install
+
+WORKDIR /app
+
+# Copy source code
+COPY . .
+
+# Create volumes for development
+VOLUME ["/app/data", "/app/config", "/app/logs"]
+
+EXPOSE 5000 3000
+
+CMD ["npm", "run", "dev"]

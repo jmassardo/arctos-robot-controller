@@ -1,0 +1,45 @@
+node_modules
+npm-debug.log*
+.git
+.gitignore
+.env.local
+.env.development
+README.md
+Dockerfile*
+docker-compose*
+coverage
+.nyc_output
+test
+tests
+spec
+docs
+
+# Client development files
+client/node_modules
+client/build/static/js/*.map
+client/build/static/css/*.map
+client/coverage
+
+# Data directories (will be mounted as volumes)
+data/*
+config/*
+logs/*
+
+# Build artifacts
+dist/
+client/build
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
+
+# Electron build files
+electron/

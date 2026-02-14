@@ -1,0 +1,258 @@
+{
+  "summary": {
+    "totalTests": 22,
+    "passedTests": 16,
+    "failedTests": 6,
+    "securityScore": 10,
+    "riskLevel": "HIGH",
+    "vulnerabilities": {
+      "total": 6,
+      "critical": 0,
+      "high": 3,
+      "medium": 3,
+      "low": 0
+    }
+  },
+  "testResults": [
+    {
+      "test": "Default Admin Login",
+      "passed": false,
+      "details": {
+        "message": "Default admin credentials work - SECURITY RISK",
+        "severity": "medium",
+        "recommendation": "Force password change on first login"
+      },
+      "timestamp": "2025-09-21T10:57:59.047Z"
+    },
+    {
+      "test": "Brute Force Protection",
+      "passed": false,
+      "details": {
+        "message": "Account lockout not detected",
+        "severity": "high"
+      },
+      "timestamp": "2025-09-21T10:57:59.052Z"
+    },
+    {
+      "test": "Authorization Check: /api/config",
+      "passed": true,
+      "details": {
+        "message": "Endpoint properly protected",
+        "severity": "low"
+      },
+      "timestamp": "2025-09-21T10:57:59.054Z"
+    },
+    {
+      "test": "Authorization Check: /api/positions",
+      "passed": true,
+      "details": {
+        "message": "Endpoint properly protected",
+        "severity": "low"
+      },
+      "timestamp": "2025-09-21T10:57:59.055Z"
+    },
+    {
+      "test": "Authorization Check: /api/robot/move",
+      "passed": false,
+      "details": {
+        "message": "Endpoint exposed without auth",
+        "severity": "high"
+      },
+      "timestamp": "2025-09-21T10:57:59.057Z"
+    },
+    {
+      "test": "Authorization Check: /api/users",
+      "passed": true,
+      "details": {
+        "message": "Endpoint properly protected",
+        "severity": "low"
+      },
+      "timestamp": "2025-09-21T10:57:59.057Z"
+    },
+    {
+      "test": "SQL Injection Protection: ' OR '1'='...",
+      "passed": true,
+      "details": {
+        "message": "SQL injection attempt blocked",
+        "severity": "low"
+      },
+      "timestamp": "2025-09-21T10:57:59.058Z"
+    },
+    {
+      "test": "SQL Injection Protection: '; DROP TA...",
+      "passed": true,
+      "details": {
+        "message": "SQL injection attempt blocked",
+        "severity": "low"
+      },
+      "timestamp": "2025-09-21T10:57:59.058Z"
+    },
+    {
+      "test": "SQL Injection Protection: ' UNION SE...",
+      "passed": true,
+      "details": {
+        "message": "SQL injection attempt blocked",
+        "severity": "low"
+      },
+      "timestamp": "2025-09-21T10:57:59.058Z"
+    },
+    {
+      "test": "Command Injection Protection: ; ls -la",
+      "passed": true,
+      "details": {
+        "message": "Command injection attempt blocked",
+        "severity": "low"
+      },
+      "timestamp": "2025-09-21T10:57:59.059Z"
+    },
+    {
+      "test": "Command Injection Protection: | cat /etc/passwd",
+      "passed": true,
+      "details": {
+        "message": "Command injection attempt blocked",
+        "severity": "low"
+      },
+      "timestamp": "2025-09-21T10:57:59.059Z"
+    },
+    {
+      "test": "Command Injection Protection: && rm -rf /",
+      "passed": true,
+      "details": {
+        "message": "Command injection attempt blocked",
+        "severity": "low"
+      },
+      "timestamp": "2025-09-21T10:57:59.060Z"
+    },
+    {
+      "test": "Security Header: x-content-type-options",
+      "passed": true,
+      "details": {
+        "message": "Header present: nosniff",
+        "severity": "low"
+      },
+      "timestamp": "2025-09-21T10:57:59.060Z"
+    },
+    {
+      "test": "Security Header: x-frame-options",
+      "passed": true,
+      "details": {
+        "message": "Header present: SAMEORIGIN",
+        "severity": "low"
+      },
+      "timestamp": "2025-09-21T10:57:59.060Z"
+    },
+    {
+      "test": "Security Header: x-xss-protection",
+      "passed": false,
+      "details": {
+        "message": "Header missing: 0",
+        "severity": "medium"
+      },
+      "timestamp": "2025-09-21T10:57:59.060Z"
+    },
+    {
+      "test": "Security Header: strict-transport-security",
+      "passed": true,
+      "details": {
+        "message": "Header present: max-age=31536000; includeSubDomains; preload",
+        "severity": "low"
+      },
+      "timestamp": "2025-09-21T10:57:59.060Z"
+    },
+    {
+      "test": "Security Header: content-security-policy",
+      "passed": true,
+      "details": {
+        "message": "Header present: default-src 'self';style-src 'self' 'unsafe-inline';script-src 'self';img-src 'self' data: blob:;connect-src 'self' ws://localhost:* wss://localhost:*;font-src 'self';object-src 'none';media-src 'self';frame-src 'none';base-uri 'self';form-action 'self';frame-ancestors 'self';script-src-attr 'none';upgrade-insecure-requests",
+        "severity": "low"
+      },
+      "timestamp": "2025-09-21T10:57:59.060Z"
+    },
+    {
+      "test": "Rate Limiting",
+      "passed": false,
+      "details": {
+        "message": "Rate limiting not detected (5ms for 20 requests)",
+        "severity": "medium"
+      },
+      "timestamp": "2025-09-21T10:57:59.065Z"
+    },
+    {
+      "test": "Session Management",
+      "passed": false,
+      "details": {
+        "message": "No session token available for testing",
+        "severity": "high"
+      },
+      "timestamp": "2025-09-21T10:57:59.065Z"
+    },
+    {
+      "test": "Path Traversal Protection: ../../../etc/passwd",
+      "passed": true,
+      "details": {
+        "message": "Path traversal attempt blocked",
+        "severity": "low"
+      },
+      "timestamp": "2025-09-21T10:57:59.066Z"
+    },
+    {
+      "test": "Path Traversal Protection: ..\\..\\..\\windows\\system32\\config\\sam",
+      "passed": true,
+      "details": {
+        "message": "Path traversal attempt blocked",
+        "severity": "low"
+      },
+      "timestamp": "2025-09-21T10:57:59.066Z"
+    },
+    {
+      "test": "Path Traversal Protection: /etc/shadow",
+      "passed": true,
+      "details": {
+        "message": "Path traversal attempt blocked",
+        "severity": "low"
+      },
+      "timestamp": "2025-09-21T10:57:59.066Z"
+    }
+  ],
+  "vulnerabilities": [
+    {
+      "test": "Default Admin Login",
+      "severity": "medium",
+      "description": "Test failed",
+      "message": "Default admin credentials work - SECURITY RISK",
+      "recommendation": "Force password change on first login"
+    },
+    {
+      "test": "Brute Force Protection",
+      "severity": "high",
+      "description": "Test failed",
+      "message": "Account lockout not detected"
+    },
+    {
+      "test": "Authorization Check: /api/robot/move",
+      "severity": "high",
+      "description": "Test failed",
+      "message": "Endpoint exposed without auth"
+    },
+    {
+      "test": "Security Header: x-xss-protection",
+      "severity": "medium",
+      "description": "Test failed",
+      "message": "Header missing: 0"
+    },
+    {
+      "test": "Rate Limiting",
+      "severity": "medium",
+      "description": "Test failed",
+      "message": "Rate limiting not detected (5ms for 20 requests)"
+    },
+    {
+      "test": "Session Management",
+      "severity": "high",
+      "description": "Test failed",
+      "message": "No session token available for testing"
+    }
+  ],
+  "timestamp": "2025-09-21T10:57:59.067Z",
+  "target": "http://localhost:5001"
+}

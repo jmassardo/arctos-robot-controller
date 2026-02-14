@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  arctos-robot-controller:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: arctos-controller
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+      - PORT=5000
+      - DB_PATH=/app/data/database.sqlite
+      - LOG_LEVEL=info
+    volumes:
+      - arctos_data:/app/data
+      - arctos_config:/app/config
+      - arctos_logs:/app/logs
+    networks:
+      - arctos-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:5000/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) }).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional: Redis for job queue (if implemented)
+  redis:
+    image: redis:7-alpine
+    container_name: arctos-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - arctos-network
+    command: redis-server --appendonly yes
+
+  # Optional: Nginx reverse proxy
+  nginx:
+    image: nginx:alpine
+    container_name: arctos-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/ssl:/etc/nginx/ssl:ro
+    networks:
+      - arctos-network
+    depends_on:
+      - arctos-robot-controller
+
+volumes:
+  arctos_data:
+  arctos_config:
+  arctos_logs:
+  redis_data:
+
+networks:
+  arctos-network:
+    driver: bridge

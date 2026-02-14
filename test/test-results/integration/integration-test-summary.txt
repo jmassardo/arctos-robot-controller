@@ -1,0 +1,47 @@
+INTEGRATION TEST REPORT - ARCTOS ROBOT CONTROLLER
+================================================
+
+Generated: 2025-09-21T08:17:37.911Z
+Duration: 0s
+Configuration: Sequential execution
+
+SUMMARY
+-------
+Total Tests: 5
+Passed: 0
+Failed: 0
+Skipped: 0
+Success Rate: 0%
+
+TEST SUITES
+-----------
+
+API Contract Tests: FAILED
+  Description: Testing all REST API endpoints and contracts
+  Tests: 1 (0 passed, 0 failed, 0 skipped)
+  Duration: 0s
+  Errors: 4
+
+Database Integration Tests: FAILED
+  Description: Testing database operations and data consistency
+  Tests: 1 (0 passed, 0 failed, 0 skipped)
+  Duration: 0s
+  Errors: 4
+
+Socket.IO Integration Tests: FAILED
+  Description: Testing real-time WebSocket communication
+  Tests: 1 (0 passed, 0 failed, 0 skipped)
+  Duration: 0s
+  Errors: 4
+
+Authentication Flow Tests: FAILED
+  Description: Testing complete authentication workflows including 2FA
+  Tests: 1 (0 passed, 0 failed, 0 skipped)
+  Duration: 0s
+  Errors: 4
+
+Hardware Integration Tests: FAILED
+  Description: Testing hardware communication and protocols
+  Tests: 1 (0 passed, 0 failed, 0 skipped)
+  Duration: 0s
+  Errors: 4

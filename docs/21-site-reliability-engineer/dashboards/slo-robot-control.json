@@ -1,0 +1,317 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "SRE Robot Control SLOs",
+    "tags": ["sre", "slo", "robot-control"],
+    "style": "dark",
+    "timezone": "browser",
+    "refresh": "30s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Robot Command Success Rate (SLO: ≥99%)",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "robot_command_success_rate",
+            "legendFormat": "Success Rate"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "yellow", "value": 99},
+                {"color": "green", "value": 99.5}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 8, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "Robot Command Latency P95 (SLO: ≤100ms)",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "robot_command_latency_p95 * 1000",
+            "legendFormat": "P95 Latency"
+          },
+          {
+            "expr": "100",
+            "legendFormat": "SLO Threshold"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ms",
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "linear",
+              "spanNulls": false
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 8, "x": 8, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "Hardware Communication Uptime (SLO: ≥99.5%)",
+        "type": "gauge",
+        "targets": [
+          {
+            "expr": "hardware_communication_uptime",
+            "legendFormat": "Uptime"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 95,
+            "max": 100,
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 95},
+                {"color": "yellow", "value": 99.5},
+                {"color": "green", "value": 99.8}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 8, "x": 16, "y": 0}
+      },
+      {
+        "id": 4,
+        "title": "Error Budget Consumption",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "error_budget_consumption_robot_commands",
+            "legendFormat": "Robot Control",
+            "format": "table"
+          },
+          {
+            "expr": "error_budget_consumption_api",
+            "legendFormat": "API",
+            "format": "table"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "custom": {
+              "displayMode": "lcd-gauge",
+              "orientation": "horizontal"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": 0},
+                {"color": "yellow", "value": 50},
+                {"color": "red", "value": 75}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+      },
+      {
+        "id": 5,
+        "title": "API Availability by Endpoint Type",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "api_success_rate{endpoint_type=\"control\"}",
+            "legendFormat": "Control API"
+          },
+          {
+            "expr": "api_success_rate{endpoint_type=\"configuration\"}",
+            "legendFormat": "Configuration API"
+          },
+          {
+            "expr": "api_success_rate{endpoint_type=\"data_export\"}",
+            "legendFormat": "Export API"
+          },
+          {
+            "expr": "99.9",
+            "legendFormat": "SLO Threshold"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 99,
+            "max": 100
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+      },
+      {
+        "id": 6,
+        "title": "Protocol-Specific Latency",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "hardware_protocol_latency_p95{protocol=\"serial\"} * 1000",
+            "legendFormat": "Serial (SLO: 10ms)"
+          },
+          {
+            "expr": "hardware_protocol_latency_p95{protocol=\"can\"} * 1000",
+            "legendFormat": "CAN Bus (SLO: 5ms)"
+          },
+          {
+            "expr": "hardware_protocol_latency_p95{protocol=\"rs485\"} * 1000",
+            "legendFormat": "RS485 (SLO: 15ms)"
+          },
+          {
+            "expr": "hardware_protocol_latency_p95{protocol=\"modbus\"} * 1000",
+            "legendFormat": "Modbus (SLO: 20ms)"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ms",
+            "custom": {
+              "drawStyle": "line"
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 16}
+      },
+      {
+        "id": 7,
+        "title": "WebSocket Connection Stability",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "websocket_connection_stability",
+            "legendFormat": "Stability"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "yellow", "value": 95},
+                {"color": "green", "value": 98}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 0, "y": 24}
+      },
+      {
+        "id": 8,
+        "title": "Real-time Update Latency",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "websocket_update_latency_p95{update_type=\"position\"} * 1000",
+            "legendFormat": "Position Updates"
+          },
+          {
+            "expr": "websocket_update_latency_p95{update_type=\"status\"} * 1000",
+            "legendFormat": "Status Updates"
+          },
+          {
+            "expr": "50",
+            "legendFormat": "Position SLO (50ms)"
+          },
+          {
+            "expr": "100",
+            "legendFormat": "Status SLO (100ms)"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ms"
+          }
+        },
+        "gridPos": {"h": 8, "w": 18, "x": 6, "y": 24}
+      },
+      {
+        "id": 9,
+        "title": "Safety Metrics",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "robot_position_validation_failures",
+            "legendFormat": "Position Validation Failures",
+            "format": "table"
+          },
+          {
+            "expr": "unauthorized_robot_commands",
+            "legendFormat": "Unauthorized Commands",
+            "format": "table"
+          },
+          {
+            "expr": "emergency_stop_response_time",
+            "legendFormat": "Emergency Stop Response Time",
+            "format": "table"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "displayMode": "color-background"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": 0},
+                {"color": "red", "value": 1}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 32}
+      }
+    ],
+    "annotations": {
+      "list": [
+        {
+          "name": "SLO Violations",
+          "datasource": "prometheus",
+          "enable": true,
+          "expr": "ALERTS{alertname=~\".*SLO.*\"}",
+          "iconColor": "red",
+          "textFormat": "{{alertname}}: {{summary}}"
+        },
+        {
+          "name": "Deployments",
+          "datasource": "prometheus", 
+          "enable": true,
+          "expr": "increase(deployment_timestamp[1m])",
+          "iconColor": "blue",
+          "textFormat": "Deployment"
+        }
+      ]
+    },
+    "templating": {
+      "list": [
+        {
+          "name": "time_range",
+          "type": "interval",
+          "options": [
+            {"text": "1m", "value": "1m"},
+            {"text": "5m", "value": "5m"},
+            {"text": "15m", "value": "15m"},
+            {"text": "1h", "value": "1h"},
+            {"text": "6h", "value": "6h"},
+            {"text": "24h", "value": "24h"}
+          ],
+          "current": {"text": "5m", "value": "5m"}
+        }
+      ]
+    }
+  }
+}

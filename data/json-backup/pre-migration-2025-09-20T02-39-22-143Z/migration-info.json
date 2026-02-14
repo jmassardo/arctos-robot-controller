@@ -1,9 +1,7 @@
 {
   "migration_date": "2025-09-20T02:39:22.146Z",
   "backup_path": "/Users/jmassardo/code/arctos-robot-controller/data/json-backup/pre-migration-2025-09-20T02-39-22-143Z",
-  "migrated_files": [
-    "position-groups.json"
-  ],
+  "migrated_files": ["position-groups.json"],
   "database_path": "/Users/jmassardo/code/arctos-robot-controller/data/database.sqlite",
   "notes": "Original JSON files backed up before database migration"
 }

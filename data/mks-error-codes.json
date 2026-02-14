@@ -1,0 +1,166 @@
+{
+  "MKS57D": {
+    "E001": {
+      "name": "Overvoltage",
+      "description": "Supply voltage exceeds maximum rated voltage",
+      "severity": "critical",
+      "causes": ["Power supply voltage too high", "Voltage spikes in power line", "Incorrect power supply configuration"],
+      "solutions": ["Check power supply voltage settings", "Install voltage surge protector", "Verify power supply specifications"],
+      "recoveryProcedure": "Power cycle controller after fixing voltage issue"
+    },
+    "E002": {
+      "name": "Undervoltage",
+      "description": "Supply voltage below minimum operating voltage",
+      "severity": "critical",
+      "causes": ["Power supply voltage too low", "Voltage drops under load", "Loose power connections"],
+      "solutions": ["Increase power supply voltage", "Check all power connections", "Use higher capacity power supply"],
+      "recoveryProcedure": "Ensure stable power supply then reset controller"
+    },
+    "E003": {
+      "name": "Motor Overcurrent",
+      "description": "Motor current exceeds safe operating limits",
+      "severity": "warning",
+      "causes": ["Mechanical overload", "Motor wiring short circuit", "Incorrect current settings"],
+      "solutions": ["Reduce mechanical load", "Check motor wiring integrity", "Adjust current limit settings"],
+      "recoveryProcedure": "Clear error after resolving overcurrent condition"
+    },
+    "E004": {
+      "name": "Motor Overtemperature",
+      "description": "Motor temperature exceeds safe operating limits",
+      "severity": "critical",
+      "causes": ["High ambient temperature", "Poor ventilation or cooling", "Continuous high load operation", "Motor winding fault"],
+      "solutions": ["Improve motor cooling and ventilation", "Reduce continuous load", "Check motor winding resistance", "Allow cooling time before restart"],
+      "recoveryProcedure": "Wait for motor to cool down, then clear error flags"
+    },
+    "E005": {
+      "name": "Driver Overtemperature",
+      "description": "Controller driver temperature too high",
+      "severity": "critical",
+      "causes": ["High ambient temperature", "Poor controller ventilation", "Excessive switching frequency", "Heatsink thermal interface issues"],
+      "solutions": ["Improve controller cooling", "Check heatsink thermal compound", "Reduce switching frequency if possible", "Verify adequate ventilation clearance"],
+      "recoveryProcedure": "Allow controller to cool, then reset error flags"
+    },
+    "E006": {
+      "name": "Encoder Error",
+      "description": "Position feedback encoder malfunction or signal loss",
+      "severity": "critical",
+      "causes": ["Encoder cable disconnected or damaged", "Encoder power supply failure", "Encoder contamination or damage", "EMI interference on encoder signals"],
+      "solutions": ["Check encoder cable connections", "Verify encoder power supply", "Clean encoder disk/scale", "Check for EMI sources and shielding"],
+      "recoveryProcedure": "Fix encoder connection, then rehome the axis"
+    },
+    "E007": {
+      "name": "Position Following Error",
+      "description": "Actual position deviates too much from commanded position",
+      "severity": "warning",
+      "causes": ["Mechanical binding or jamming", "Insufficient motor torque", "Excessive load or friction", "Incorrect tuning parameters"],
+      "solutions": ["Check for mechanical obstructions", "Increase motor current limits", "Reduce acceleration/velocity", "Retune servo parameters"],
+      "recoveryProcedure": "Clear obstruction, adjust parameters, then clear error"
+    },
+    "E008": {
+      "name": "Communication Timeout",
+      "description": "Loss of communication with host controller",
+      "severity": "warning",
+      "causes": ["CAN bus cable disconnected", "Communication interference", "Host controller not responding", "CAN bus termination issues"],
+      "solutions": ["Check CAN bus cable connections", "Verify CAN bus termination resistors", "Check for EMI sources", "Restart host controller communication"],
+      "recoveryProcedure": "Restore communication link, then resume operation"
+    },
+    "E009": {
+      "name": "Motor Stall",
+      "description": "Motor unable to maintain rotation despite applied current",
+      "severity": "warning",
+      "causes": ["Mechanical binding", "Excessive load", "Motor winding fault", "Insufficient supply voltage"],
+      "solutions": ["Check for mechanical binding", "Reduce load or increase motor size", "Test motor windings", "Verify adequate supply voltage"],
+      "recoveryProcedure": "Remove obstruction, then restart motor"
+    },
+    "E010": {
+      "name": "Emergency Stop Active",
+      "description": "Emergency stop input is activated",
+      "severity": "fatal",
+      "causes": ["Emergency stop button pressed", "Safety system activation", "Emergency stop circuit fault", "Safety relay malfunction"],
+      "solutions": ["Release emergency stop button", "Check safety system status", "Verify emergency stop circuit integrity", "Test safety relay operation"],
+      "recoveryProcedure": "Clear emergency condition, reset safety system"
+    },
+    "E011": {
+      "name": "Limit Switch Activated",
+      "description": "Hardware limit switch has been triggered",
+      "severity": "warning",
+      "causes": ["Axis moved beyond travel limit", "Limit switch misadjusted", "Programming error in motion commands", "Limit switch wiring fault"],
+      "solutions": ["Move axis away from limit", "Check limit switch positions", "Verify motion program", "Test limit switch wiring"],
+      "recoveryProcedure": "Jog axis away from limit, then rehome if needed"
+    },
+    "E012": {
+      "name": "Velocity Limit Exceeded",
+      "description": "Commanded velocity exceeds maximum allowed speed",
+      "severity": "warning",
+      "causes": ["Excessive velocity command", "Incorrect velocity scaling", "Programming error", "Velocity limit too restrictive"],
+      "solutions": ["Reduce commanded velocity", "Check velocity scaling parameters", "Review motion program", "Adjust velocity limits if appropriate"],
+      "recoveryProcedure": "Reduce velocity and continue operation"
+    },
+    "E013": {
+      "name": "Acceleration Limit Exceeded",
+      "description": "Commanded acceleration exceeds system limits",
+      "severity": "info",
+      "causes": ["Excessive acceleration command", "Incorrect acceleration scaling", "Motion profile too aggressive"],
+      "solutions": ["Reduce commanded acceleration", "Check acceleration parameters", "Smooth motion profiles"],
+      "recoveryProcedure": "Adjust acceleration parameters and continue"
+    },
+    "E014": {
+      "name": "Memory Error",
+      "description": "Controller memory corruption or failure",
+      "severity": "fatal",
+      "causes": ["Flash memory corruption", "RAM failure", "Firmware corruption", "Power supply instability"],
+      "solutions": ["Power cycle controller", "Reflash firmware", "Check power supply stability", "Replace controller if persistent"],
+      "recoveryProcedure": "Power cycle, reflash firmware if needed"
+    },
+    "E015": {
+      "name": "Configuration Error",
+      "description": "Invalid configuration parameters detected",
+      "severity": "critical",
+      "causes": ["Invalid parameter values", "Configuration mismatch", "Corrupted configuration data", "Incompatible firmware version"],
+      "solutions": ["Reset to factory defaults", "Load known good configuration", "Update firmware if needed", "Verify parameter validity"],
+      "recoveryProcedure": "Load default configuration, then reconfigure"
+    }
+  },
+  "MKS42D": {
+    "E001": {
+      "name": "Overvoltage",
+      "description": "Supply voltage exceeds maximum rated voltage for MKS42D",
+      "severity": "critical",
+      "causes": ["Power supply voltage too high", "Voltage spikes in power line", "Incorrect power supply configuration"],
+      "solutions": ["Check power supply voltage settings", "Install voltage surge protector", "Verify power supply specifications for 24V operation"],
+      "recoveryProcedure": "Power cycle controller after fixing voltage issue"
+    },
+    "E002": {
+      "name": "Undervoltage",
+      "description": "Supply voltage below minimum operating voltage for MKS42D",
+      "severity": "critical",
+      "causes": ["Power supply voltage too low", "Voltage drops under load", "Loose power connections"],
+      "solutions": ["Increase power supply voltage to 24V", "Check all power connections", "Use higher capacity 24V power supply"],
+      "recoveryProcedure": "Ensure stable 24V power supply then reset controller"
+    },
+    "E003": {
+      "name": "Stepper Motor Overcurrent",
+      "description": "Stepper motor current exceeds safe operating limits",
+      "severity": "warning",
+      "causes": ["Mechanical overload on stepper", "Motor wiring short circuit", "Incorrect current settings for stepper"],
+      "solutions": ["Reduce mechanical load on stepper", "Check stepper motor wiring", "Adjust stepper current limit settings"],
+      "recoveryProcedure": "Clear error after resolving stepper overcurrent condition"
+    },
+    "E004": {
+      "name": "Stepper Driver Overtemperature",
+      "description": "Stepper driver IC temperature too high",
+      "severity": "critical",
+      "causes": ["High ambient temperature", "Poor stepper driver cooling", "Excessive stepper current", "Driver IC thermal issues"],
+      "solutions": ["Improve stepper driver cooling", "Reduce stepper current if possible", "Check driver IC heatsinking", "Verify adequate ventilation"],
+      "recoveryProcedure": "Allow driver to cool, then reset error flags"
+    },
+    "E005": {
+      "name": "Step Loss Detection",
+      "description": "Stepper motor step loss detected (if encoder equipped)",
+      "severity": "warning",
+      "causes": ["Stepper motor stall", "Insufficient stepper torque", "Mechanical binding", "Step rate too high"],
+      "solutions": ["Reduce stepper speed", "Increase stepper current", "Check for mechanical binding", "Use micro-stepping for smoother operation"],
+      "recoveryProcedure": "Rehome stepper axis after clearing obstruction"
+    }
+  }
+}

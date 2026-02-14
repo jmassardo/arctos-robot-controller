@@ -34,7 +34,7 @@
       "form_factor": "wide"
     },
     {
-      "src": "screenshot-narrow.png", 
+      "src": "screenshot-narrow.png",
       "sizes": "360x640",
       "type": "image/png",
       "form_factor": "narrow"
@@ -49,7 +49,7 @@
       "icons": [{ "src": "favicon.ico", "sizes": "32x32" }]
     },
     {
-      "name": "G-Code Control", 
+      "name": "G-Code Control",
       "short_name": "G-Code",
       "description": "Execute G-code programs",
       "url": "/?tab=gcode",
@@ -57,7 +57,7 @@
     },
     {
       "name": "Position Replay",
-      "short_name": "Replay", 
+      "short_name": "Replay",
       "description": "Replay saved positions",
       "url": "/?tab=replay",
       "icons": [{ "src": "favicon.ico", "sizes": "32x32" }]

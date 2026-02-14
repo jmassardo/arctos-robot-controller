@@ -1,0 +1,14 @@
+[
+  {
+    "id": 1,
+    "username": "invalidtest_1758432498482",
+    "email": "invalidtest_1758432498482@example.com",
+    "password": "$2a$12$XFQC5mO67ciV24pxualuluDUD33Zy4arkECXUqh/xMmM33VQFNXa.",
+    "role": "operator",
+    "isActive": true,
+    "createdAt": "2025-09-21T05:28:18.697Z",
+    "lastLogin": null,
+    "loginAttempts": 1,
+    "lockoutUntil": null
+  }
+]

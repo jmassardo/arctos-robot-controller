@@ -1,0 +1,1 @@
+[{ "id": "test-id", "name": "Test Position", "position": { "axis1": 10, "axis2": 20, "axis3": 30 }, "gripper": 25, "timestamp": "2024-01-01T12:00:00Z" }]

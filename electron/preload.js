@@ -4,35 +4,35 @@ const { contextBridge, ipcRenderer } = require('electron');
 // the ipcRenderer without exposing the entire object
 contextBridge.exposeInMainWorld('electronAPI', {
   // File operations
-  loadGCodeFile: (callback) => {
+  loadGCodeFile: callback => {
     ipcRenderer.on('load-gcode-file', callback);
   },
-  
+
   // Robot control
-  emergencyStop: (callback) => {
+  emergencyStop: callback => {
     ipcRenderer.on('emergency-stop', callback);
   },
-  
-  homeAllAxes: (callback) => {
+
+  homeAllAxes: callback => {
     ipcRenderer.on('home-all-axes', callback);
   },
-  
-  resetPosition: (callback) => {
+
+  resetPosition: callback => {
     ipcRenderer.on('reset-position', callback);
   },
-  
+
   // Remove listeners
-  removeAllListeners: (channel) => {
+  removeAllListeners: channel => {
     ipcRenderer.removeAllListeners(channel);
   },
-  
+
   // Platform info
   platform: process.platform,
-  
+
   // Version info
   versions: {
     node: process.versions.node,
     chrome: process.versions.chrome,
-    electron: process.versions.electron
-  }
+    electron: process.versions.electron,
+  },
 });

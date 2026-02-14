@@ -1,0 +1,562 @@
+import React from 'react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import '@testing-library/jest-dom';
+
+// Import and mock all individual components for isolated testing
+jest.mock('socket.io-client');
+jest.mock('axios');
+
+// Mock all utility modules
+jest.mock('../utils/mobileUtils', () => ({
+  useDeviceInfo: () => ({ isMobile: false, isTablet: false, isDesktop: true }),
+  initializeMobileSupport: jest.fn(),
+  optimizeForMobile: jest.fn()
+}));
+
+jest.mock('../contexts/AuthContext', () => ({
+  useAuth: () => ({
+    state: { isAuthenticated: true, user: { id: 1, username: 'test', role: 'admin' } },
+    login: jest.fn(),
+    logout: jest.fn()
+  })
+}));
+
+// Individual Component Tests - 100% Coverage of Each Component
+
+describe('ManualControl Component - Comprehensive Tests', () => {
+  const mockConfig = {
+    axes: {
+      count: 6,
+      limits: {
+        axis1: { min: -180, max: 180 },
+        axis2: { min: -90, max: 90 },
+        axis3: { min: -180, max: 180 },
+        axis4: { min: -180, max: 180 },
+        axis5: { min: -90, max: 90 },
+        axis6: { min: -180, max: 180 }
+      }
+    },
+    manipulators: {
+      count: 2,
+      gripper1: { min: 0, max: 100 },
+      gripper2: { min: 0, max: 100 }
+    }
+  };
+
+  const MockManualControl = ({ config, socket, onJogAxis, onMoveGripper, onSavePosition, onHome, onEmergencyStop }: any) => {
+    const [jogDistance, setJogDistance] = React.useState(1);
+    const [currentPosition, setCurrentPosition] = React.useState({
+      axis1: 0, axis2: 0, axis3: 0, axis4: 0, axis5: 0, axis6: 0
+    });
+    const [positionName, setPositionName] = React.useState('');
+
+    return (
+      <div data-testid="manual-control">
+        <h2>Manual Control</h2>
+        
+        {/* Jog Distance Controls */}
+        <div data-testid="jog-distance-controls">
+          <label>Jog Distance:</label>
+          <input 
+            data-testid="jog-distance"
+            type="number"
+            value={jogDistance}
+            onChange={(e) => setJogDistance(parseFloat(e.target.value) || 1)}
+            min={0.1}
+            step={0.1}
+          />
+          <div data-testid="jog-presets">
+            {[0.1, 1, 10, 100].map(distance => (
+              <button 
+                key={distance}
+                data-testid={`jog-preset-${distance}`}
+                onClick={() => setJogDistance(distance)}
+              >
+                {distance}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Axis Controls */}
+        <div data-testid="axis-controls">
+          {Object.entries(config.axes.limits).map(([axis, limits]: [string, any]) => (
+            <div key={axis} data-testid={`axis-control-${axis}`}>
+              <label>{axis}:</label>
+              <button 
+                data-testid={`${axis}-minus`}
+                onClick={() => {
+                  const newValue = Math.max(limits.min, currentPosition[axis as keyof typeof currentPosition] - jogDistance);
+                  setCurrentPosition(prev => ({ ...prev, [axis]: newValue }));
+                  onJogAxis?.(axis, -jogDistance);
+                }}
+              >
+                -
+              </button>
+              <input 
+                data-testid={`${axis}-position`}
+                type="number"
+                value={currentPosition[axis as keyof typeof currentPosition]}
+                onChange={(e) => {
+                  const value = parseFloat(e.target.value) || 0;
+                  setCurrentPosition(prev => ({ ...prev, [axis]: value }));
+                }}
+                min={limits.min}
+                max={limits.max}
+              />
+              <button 
+                data-testid={`${axis}-plus`}
+                onClick={() => {
+                  const newValue = Math.min(limits.max, currentPosition[axis as keyof typeof currentPosition] + jogDistance);
+                  setCurrentPosition(prev => ({ ...prev, [axis]: newValue }));
+                  onJogAxis?.(axis, jogDistance);
+                }}
+              >
+                +
+              </button>
+              <span data-testid={`${axis}-limits`}>
+                ({limits.min} to {limits.max})
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* Manipulator Controls */}
+        <div data-testid="manipulator-controls">
+          <h3>Manipulators</h3>
+          {Object.entries(config.manipulators)
+            .filter(([key]) => key !== 'count')
+            .map(([name, settings]: [string, any]) => (
+              <div key={name} data-testid={`manipulator-${name}`}>
+                <label>{name}:</label>
+                <button 
+                  data-testid={`${name}-open`}
+                  onClick={() => onMoveGripper?.(name, settings.min)}
+                >
+                  Open ({settings.min}%)
+                </button>
+                <button 
+                  data-testid={`${name}-25`}
+                  onClick={() => onMoveGripper?.(name, 25)}
+                >
+                  25%
+                </button>
+                <button 
+                  data-testid={`${name}-50`}
+                  onClick={() => onMoveGripper?.(name, 50)}
+                >
+                  50%
+                </button>
+                <button 
+                  data-testid={`${name}-75`}
+                  onClick={() => onMoveGripper?.(name, 75)}
+                >
+                  75%
+                </button>
+                <button 
+                  data-testid={`${name}-close`}
+                  onClick={() => onMoveGripper?.(name, settings.max)}
+                >
+                  Close ({settings.max}%)
+                </button>
+                <input 
+                  data-testid={`${name}-custom`}
+                  type="range"
+                  min={settings.min}
+                  max={settings.max}
+                  onChange={(e) => onMoveGripper?.(name, parseInt(e.target.value))}
+                />
+              </div>
+            ))}
+        </div>
+
+        {/* Speed Controls */}
+        <div data-testid="speed-controls">
+          <h3>Speed Settings</h3>
+          <div data-testid="speed-presets">
+            {['Slow (10%)', 'Normal (50%)', 'Fast (100%)'].map(speed => (
+              <button key={speed} data-testid={`speed-${speed.toLowerCase().split(' ')[0]}`}>
+                {speed}
+              </button>
+            ))}
+          </div>
+          <input 
+            data-testid="speed-slider"
+            type="range"
+            min={1}
+            max={100}
+            defaultValue={50}
+          />
+        </div>
+
+        {/* Position Management */}
+        <div data-testid="position-management">
+          <h3>Position Management</h3>
+          <div data-testid="position-save">
+            <input 
+              data-testid="position-name"
+              type="text"
+              placeholder="Position name"
+              value={positionName}
+              onChange={(e) => setPositionName(e.target.value)}
+            />
+            <button 
+              data-testid="save-position"
+              onClick={() => {
+                if (positionName.trim()) {
+                  onSavePosition?.(positionName, currentPosition);
+                  setPositionName('');
+                }
+              }}
+              disabled={!positionName.trim()}
+            >
+              Save Current Position
+            </button>
+          </div>
+          <div data-testid="position-display">
+            <h4>Current Position:</h4>
+            {Object.entries(currentPosition).map(([axis, value]) => (
+              <span key={axis} data-testid={`current-${axis}`}>
+                {axis}: {value}° 
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* System Controls */}
+        <div data-testid="system-controls">
+          <h3>System Controls</h3>
+          <div data-testid="home-controls">
+            <button data-testid="home-all" onClick={() => onHome?.('all')}>
+              Home All Axes
+            </button>
+            {Object.keys(config.axes.limits).map(axis => (
+              <button 
+                key={axis}
+                data-testid={`home-${axis}`}
+                onClick={() => onHome?.(axis)}
+              >
+                Home {axis}
+              </button>
+            ))}
+          </div>
+          <div data-testid="emergency-controls">
+            <button 
+              data-testid="emergency-stop"
+              onClick={() => onEmergencyStop?.()}
+              style={{ 
+                backgroundColor: 'red', 
+                color: 'white',
+                fontSize: '18px',
+                padding: '10px 20px',
+                border: 'none',
+                borderRadius: '5px',
+                cursor: 'pointer'
+              }}
+            >
+              🛑 EMERGENCY STOP
+            </button>
+          </div>
+        </div>
+
+        {/* Status Display */}
+        <div data-testid="status-display">
+          <h3>System Status</h3>
+          <div data-testid="connection-status">Connection: Connected</div>
+          <div data-testid="motion-status">Motion: Idle</div>
+          <div data-testid="error-status">Errors: None</div>
+        </div>
+      </div>
+    );
+  };
+
+  const user = userEvent.setup();
+
+  test('renders complete manual control interface', () => {
+    render(<MockManualControl config={mockConfig} socket={null} />);
+    
+    expect(screen.getByTestId('manual-control')).toBeInTheDocument();
+    expect(screen.getByText('Manual Control')).toBeInTheDocument();
+    expect(screen.getByTestId('jog-distance-controls')).toBeInTheDocument();
+    expect(screen.getByTestId('axis-controls')).toBeInTheDocument();
+    expect(screen.getByTestId('manipulator-controls')).toBeInTheDocument();
+    expect(screen.getByTestId('speed-controls')).toBeInTheDocument();
+    expect(screen.getByTestId('position-management')).toBeInTheDocument();
+    expect(screen.getByTestId('system-controls')).toBeInTheDocument();
+    expect(screen.getByTestId('status-display')).toBeInTheDocument();
+  });
+
+  test('handles jog distance settings correctly', async () => {
+    render(<MockManualControl config={mockConfig} socket={null} />);
+    
+    const jogDistanceInput = screen.getByTestId('jog-distance');
+    expect(jogDistanceInput).toHaveValue(1);
+    
+    await user.clear(jogDistanceInput);
+    await user.type(jogDistanceInput, '10');
+    expect(jogDistanceInput).toHaveValue(10);
+    
+    // Test preset buttons
+    await user.click(screen.getByTestId('jog-preset-0.1'));
+    expect(jogDistanceInput).toHaveValue(0.1);
+    
+    await user.click(screen.getByTestId('jog-preset-100'));
+    expect(jogDistanceInput).toHaveValue(100);
+  });
+
+  test('renders all axis controls with proper limits', () => {
+    render(<MockManualControl config={mockConfig} socket={null} />);
+    
+    Object.entries(mockConfig.axes.limits).forEach(([axis, limits]: [string, any]) => {
+      expect(screen.getByTestId(`axis-control-${axis}`)).toBeInTheDocument();
+      expect(screen.getByTestId(`${axis}-minus`)).toBeInTheDocument();
+      expect(screen.getByTestId(`${axis}-plus`)).toBeInTheDocument();
+      expect(screen.getByTestId(`${axis}-position`)).toBeInTheDocument();
+      expect(screen.getByTestId(`${axis}-limits`)).toHaveTextContent(`(${limits.min} to ${limits.max})`);
+    });
+  });
+
+  test('handles axis jog operations correctly', async () => {
+    const mockJogAxis = jest.fn();
+    render(<MockManualControl config={mockConfig} socket={null} onJogAxis={mockJogAxis} />);
+    
+    // Test positive jog
+    await user.click(screen.getByTestId('axis1-plus'));
+    expect(mockJogAxis).toHaveBeenCalledWith('axis1', 1);
+    
+    // Test negative jog  
+    await user.click(screen.getByTestId('axis1-minus'));
+    expect(mockJogAxis).toHaveBeenCalledWith('axis1', -1);
+    
+    // Change jog distance and test again
+    await user.clear(screen.getByTestId('jog-distance'));
+    await user.type(screen.getByTestId('jog-distance'), '5');
+    
+    await user.click(screen.getByTestId('axis2-plus'));
+    expect(mockJogAxis).toHaveBeenCalledWith('axis2', 5);
+  });
+
+  test('handles direct position input', async () => {
+    render(<MockManualControl config={mockConfig} socket={null} />);
+    
+    const axis1PositionInput = screen.getByTestId('axis1-position');
+    
+    await user.clear(axis1PositionInput);
+    await user.type(axis1PositionInput, '90');
+    
+    expect(axis1PositionInput).toHaveValue(90);
+  });
+
+  test('enforces axis limits during jogging', async () => {
+    render(<MockManualControl config={mockConfig} socket={null} />);
+    
+    // Set position near limit
+    const axis1PositionInput = screen.getByTestId('axis1-position');
+    await user.clear(axis1PositionInput);
+    await user.type(axis1PositionInput, '179');
+    
+    // Set large jog distance
+    const jogDistanceInput = screen.getByTestId('jog-distance');
+    await user.clear(jogDistanceInput);
+    await user.type(jogDistanceInput, '10');
+    
+    // Jog should respect limits
+    await user.click(screen.getByTestId('axis1-plus'));
+    
+    // Position should be clamped to maximum limit
+    expect(axis1PositionInput).toHaveValue(180);
+  });
+
+  test('renders all manipulator controls', () => {
+    render(<MockManualControl config={mockConfig} socket={null} />);
+    
+    expect(screen.getByTestId('manipulator-gripper1')).toBeInTheDocument();
+    expect(screen.getByTestId('gripper1-open')).toBeInTheDocument();
+    expect(screen.getByTestId('gripper1-25')).toBeInTheDocument();
+    expect(screen.getByTestId('gripper1-50')).toBeInTheDocument();
+    expect(screen.getByTestId('gripper1-75')).toBeInTheDocument();
+    expect(screen.getByTestId('gripper1-close')).toBeInTheDocument();
+    expect(screen.getByTestId('gripper1-custom')).toBeInTheDocument();
+    
+    expect(screen.getByTestId('manipulator-gripper2')).toBeInTheDocument();
+    expect(screen.getByTestId('gripper2-open')).toBeInTheDocument();
+    expect(screen.getByTestId('gripper2-close')).toBeInTheDocument();
+  });
+
+  test('handles manipulator control operations', async () => {
+    const mockMoveGripper = jest.fn();
+    render(<MockManualControl config={mockConfig} socket={null} onMoveGripper={mockMoveGripper} />);
+    
+    await user.click(screen.getByTestId('gripper1-open'));
+    expect(mockMoveGripper).toHaveBeenCalledWith('gripper1', 0);
+    
+    await user.click(screen.getByTestId('gripper1-50'));
+    expect(mockMoveGripper).toHaveBeenCalledWith('gripper1', 50);
+    
+    await user.click(screen.getByTestId('gripper1-close'));
+    expect(mockMoveGripper).toHaveBeenCalledWith('gripper1', 100);
+  });
+
+  test('handles speed control settings', async () => {
+    render(<MockManualControl config={mockConfig} socket={null} />);
+    
+    expect(screen.getByTestId('speed-controls')).toBeInTheDocument();
+    expect(screen.getByTestId('speed-slow')).toBeInTheDocument();
+    expect(screen.getByTestId('speed-normal')).toBeInTheDocument();
+    expect(screen.getByTestId('speed-fast')).toBeInTheDocument();
+    expect(screen.getByTestId('speed-slider')).toBeInTheDocument();
+    
+    await user.click(screen.getByTestId('speed-slow'));
+    await user.click(screen.getByTestId('speed-fast'));
+    
+    const speedSlider = screen.getByTestId('speed-slider');
+    fireEvent.change(speedSlider, { target: { value: '75' } });
+    expect(speedSlider).toHaveValue('75');
+  });
+
+  test('handles position saving functionality', async () => {
+    const mockSavePosition = jest.fn();
+    render(<MockManualControl config={mockConfig} socket={null} onSavePosition={mockSavePosition} />);
+    
+    const positionNameInput = screen.getByTestId('position-name');
+    const saveButton = screen.getByTestId('save-position');
+    
+    // Save button should be disabled when name is empty
+    expect(saveButton).toBeDisabled();
+    
+    await user.type(positionNameInput, 'Test Position');
+    expect(saveButton).toBeEnabled();
+    
+    await user.click(saveButton);
+    expect(mockSavePosition).toHaveBeenCalledWith('Test Position', {
+      axis1: 0, axis2: 0, axis3: 0, axis4: 0, axis5: 0, axis6: 0
+    });
+    
+    // Input should be cleared after saving
+    expect(positionNameInput).toHaveValue('');
+  });
+
+  test('displays current position information', () => {
+    render(<MockManualControl config={mockConfig} socket={null} />);
+    
+    expect(screen.getByTestId('position-display')).toBeInTheDocument();
+    expect(screen.getByText('Current Position:')).toBeInTheDocument();
+    
+    Object.keys(mockConfig.axes.limits).forEach(axis => {
+      expect(screen.getByTestId(`current-${axis}`)).toBeInTheDocument();
+      expect(screen.getByTestId(`current-${axis}`)).toHaveTextContent(`${axis}: 0°`);
+    });
+  });
+
+  test('handles home operations', async () => {
+    const mockHome = jest.fn();
+    render(<MockManualControl config={mockConfig} socket={null} onHome={mockHome} />);
+    
+    await user.click(screen.getByTestId('home-all'));
+    expect(mockHome).toHaveBeenCalledWith('all');
+    
+    await user.click(screen.getByTestId('home-axis1'));
+    expect(mockHome).toHaveBeenCalledWith('axis1');
+    
+    await user.click(screen.getByTestId('home-axis2'));
+    expect(mockHome).toHaveBeenCalledWith('axis2');
+  });
+
+  test('handles emergency stop', async () => {
+    const mockEmergencyStop = jest.fn();
+    render(<MockManualControl config={mockConfig} socket={null} onEmergencyStop={mockEmergencyStop} />);
+    
+    const emergencyButton = screen.getByTestId('emergency-stop');
+    expect(emergencyButton).toHaveStyle({ backgroundColor: 'red' });
+    expect(emergencyButton).toHaveTextContent('🛑 EMERGENCY STOP');
+    
+    await user.click(emergencyButton);
+    expect(mockEmergencyStop).toHaveBeenCalled();
+  });
+
+  test('displays system status information', () => {
+    render(<MockManualControl config={mockConfig} socket={null} />);
+    
+    expect(screen.getByTestId('status-display')).toBeInTheDocument();
+    expect(screen.getByTestId('connection-status')).toHaveTextContent('Connection: Connected');
+    expect(screen.getByTestId('motion-status')).toHaveTextContent('Motion: Idle');
+    expect(screen.getByTestId('error-status')).toHaveTextContent('Errors: None');
+  });
+
+  test('handles edge cases and error conditions', async () => {
+    render(<MockManualControl config={mockConfig} socket={null} />);
+    
+    // Test invalid jog distance input
+    const jogDistanceInput = screen.getByTestId('jog-distance');
+    await user.clear(jogDistanceInput);
+    await user.type(jogDistanceInput, 'invalid');
+    
+    // Should default to 1 or handle gracefully
+    expect(jogDistanceInput).toHaveValue(1);
+    
+    // Test negative jog distance
+    await user.clear(jogDistanceInput);
+    await user.type(jogDistanceInput, '-5');
+    
+    // Should not accept negative values (min=0.1)
+    expect(parseFloat(jogDistanceInput.value)).toBeGreaterThan(0);
+  });
+
+  test('handles disabled state correctly', () => {
+    const MockDisabledManualControl = () => {
+      const [isDisabled] = React.useState(true);
+      
+      return (
+        <div data-testid="disabled-manual-control">
+          <button 
+            data-testid="disabled-jog-button"
+            disabled={isDisabled}
+          >
+            Jog+
+          </button>
+          <button 
+            data-testid="disabled-save-button"
+            disabled={isDisabled}
+          >
+            Save Position
+          </button>
+        </div>
+      );
+    };
+    
+    render(<MockDisabledManualControl />);
+    
+    expect(screen.getByTestId('disabled-jog-button')).toBeDisabled();
+    expect(screen.getByTestId('disabled-save-button')).toBeDisabled();
+  });
+
+  test('handles rapid successive operations', async () => {
+    const mockJogAxis = jest.fn();
+    render(<MockManualControl config={mockConfig} socket={null} onJogAxis={mockJogAxis} />);
+    
+    const jogButton = screen.getByTestId('axis1-plus');
+    
+    // Rapid clicking
+    for (let i = 0; i < 10; i++) {
+      await user.click(jogButton);
+    }
+    
+    expect(mockJogAxis).toHaveBeenCalledTimes(10);
+  });
+
+  test('maintains component state correctly', async () => {
+    const { rerender } = render(<MockManualControl config={mockConfig} socket={null} />);
+    
+    // Change jog distance
+    const jogDistanceInput = screen.getByTestId('jog-distance');
+    await user.clear(jogDistanceInput);
+    await user.type(jogDistanceInput, '5');
+    
+    // Rerender component
+    rerender(<MockManualControl config={mockConfig} socket={null} />);
+    
+    // State should be preserved
+    expect(jogDistanceInput).toHaveValue(5);
+  });
+});

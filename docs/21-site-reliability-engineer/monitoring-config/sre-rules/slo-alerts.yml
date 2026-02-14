@@ -1,0 +1,319 @@
+# SRE Alerting Rules for Robot Control System
+# Service Level Objective (SLO) based alerting
+
+groups:
+  - name: slo-robot-control
+    rules:
+      # Robot Command Success Rate SLO Violation
+      - alert: RobotCommandSuccessRateLow
+        expr: robot_command_success_rate < 99.0
+        for: 5m
+        labels:
+          severity: critical
+          slo: robot_control
+          component: hardware_interface
+          error_budget_impact: high
+        annotations:
+          summary: "Robot command success rate below SLO threshold"
+          description: |
+            Robot command success rate is {{ $value | humanizePercentage }} 
+            which is below the 99.0% SLO threshold.
+            This indicates potential hardware communication issues or robot failures.
+          dashboard: "https://grafana.example.com/d/robot-slo/robot-control-slos"
+          runbook: "https://runbooks.example.com/robot-command-failures"
+          impact: "Users experiencing failed robot movements and positioning errors"
+
+      # Robot Command Latency SLO Violation
+      - alert: RobotCommandLatencyHigh
+        expr: robot_command_latency_p95 > 0.1  # 100ms
+        for: 2m
+        labels:
+          severity: warning
+          slo: robot_control
+          component: hardware_interface
+          error_budget_impact: medium
+        annotations:
+          summary: "Robot command latency exceeding SLO threshold"
+          description: |
+            Robot command P95 latency is {{ $value | humanizeDuration }} 
+            which exceeds the 100ms SLO threshold.
+            This may impact real-time control responsiveness.
+          dashboard: "https://grafana.example.com/d/robot-slo/robot-control-slos"
+          runbook: "https://runbooks.example.com/robot-latency-issues"
+
+      - alert: RobotCommandLatencyCritical
+        expr: robot_command_latency_p99 > 0.2  # 200ms
+        for: 1m
+        labels:
+          severity: critical
+          slo: robot_control
+          component: hardware_interface
+          error_budget_impact: high
+        annotations:
+          summary: "Critical robot command latency violation"
+          description: |
+            Robot command P99 latency is {{ $value | humanizeDuration }} 
+            which severely exceeds the 200ms critical threshold.
+            Immediate investigation required for real-time control.
+          dashboard: "https://grafana.example.com/d/robot-slo/robot-control-slos"
+          runbook: "https://runbooks.example.com/robot-latency-critical"
+
+  - name: slo-hardware-communication
+    rules:
+      # Hardware Communication Uptime SLO
+      - alert: HardwareCommunicationDown
+        expr: hardware_communication_uptime < 99.5
+        for: 1m
+        labels:
+          severity: critical
+          slo: hardware_communication
+          component: protocol_interface
+          error_budget_impact: high
+        annotations:
+          summary: "Hardware communication uptime below SLO"
+          description: |
+            Hardware communication uptime is {{ $value | humanizePercentage }}
+            which is below the 99.5% SLO threshold.
+            Robot control may be unavailable or unreliable.
+          dashboard: "https://grafana.example.com/d/hardware-slo/hardware-communication-slos"
+          runbook: "https://runbooks.example.com/hardware-communication-failure"
+
+      # Protocol-Specific Response Time Violations
+      - alert: SerialProtocolLatencyHigh
+        expr: hardware_protocol_latency_p95{protocol="serial"} > 0.01  # 10ms
+        for: 3m
+        labels:
+          severity: warning
+          slo: hardware_communication
+          component: serial_interface
+          protocol: serial
+        annotations:
+          summary: "Serial protocol latency exceeding SLO"
+          description: |
+            Serial protocol P95 latency is {{ $value | humanizeDuration }}
+            which exceeds the 10ms SLO threshold for serial communication.
+
+      - alert: CANBusLatencyHigh
+        expr: hardware_protocol_latency_p95{protocol="can"} > 0.005  # 5ms
+        for: 3m
+        labels:
+          severity: warning
+          slo: hardware_communication
+          component: can_interface
+          protocol: can
+        annotations:
+          summary: "CAN Bus latency exceeding SLO"
+          description: |
+            CAN Bus P95 latency is {{ $value | humanizeDuration }}
+            which exceeds the 5ms SLO threshold for CAN communication.
+
+  - name: slo-web-application
+    rules:
+      # API Availability SLO Violation
+      - alert: APIAvailabilityLow
+        expr: api_success_rate < 99.9
+        for: 5m
+        labels:
+          severity: critical
+          slo: web_application
+          component: rest_api
+          error_budget_impact: high
+        annotations:
+          summary: "API availability below SLO threshold"
+          description: |
+            API success rate is {{ $value | humanizePercentage }}
+            which is below the 99.9% SLO threshold.
+            Users may experience application errors and failed operations.
+          dashboard: "https://grafana.example.com/d/api-slo/api-performance-slos"
+          runbook: "https://runbooks.example.com/api-availability-issues"
+
+      # API Response Time SLO Violations
+      - alert: ControlEndpointLatencyHigh
+        expr: api_response_time_p95{endpoint_type="control"} > 0.1  # 100ms
+        for: 3m
+        labels:
+          severity: warning
+          slo: web_application
+          component: control_api
+        annotations:
+          summary: "Control API latency exceeding SLO"
+          description: |
+            Control API P95 response time is {{ $value | humanizeDuration }}
+            which exceeds the 100ms SLO threshold.
+
+      - alert: ConfigurationEndpointLatencyHigh
+        expr: api_response_time_p95{endpoint_type="configuration"} > 0.5  # 500ms
+        for: 3m
+        labels:
+          severity: warning
+          slo: web_application
+          component: config_api
+        annotations:
+          summary: "Configuration API latency exceeding SLO"
+          description: |
+            Configuration API P95 response time is {{ $value | humanizeDuration }}
+            which exceeds the 500ms SLO threshold.
+
+  - name: slo-websocket-communication
+    rules:
+      # WebSocket Connection Stability SLO
+      - alert: WebSocketConnectionStabilityLow
+        expr: websocket_connection_stability < 95.0
+        for: 5m
+        labels:
+          severity: warning
+          slo: realtime_communication
+          component: websocket
+          error_budget_impact: medium
+        annotations:
+          summary: "WebSocket connection stability below SLO"
+          description: |
+            WebSocket connection stability is {{ $value | humanizePercentage }}
+            which is below the 95% SLO threshold.
+            Real-time updates may be unreliable for users.
+          dashboard: "https://grafana.example.com/d/websocket-slo/websocket-communication-slos"
+          runbook: "https://runbooks.example.com/websocket-stability-issues"
+
+      # Real-time Update Latency
+      - alert: RealtimeUpdateLatencyHigh
+        expr: websocket_update_latency_p95{update_type="position"} > 0.05  # 50ms
+        for: 2m
+        labels:
+          severity: warning
+          slo: realtime_communication
+          component: position_updates
+        annotations:
+          summary: "Real-time position update latency high"
+          description: |
+            Real-time position update P95 latency is {{ $value | humanizeDuration }}
+            which exceeds the 50ms SLO threshold for position updates.
+
+  - name: slo-error-budget
+    rules:
+      # Error Budget Consumption Alerts
+      - alert: ErrorBudgetConsumptionHigh
+        expr: error_budget_consumption_robot_commands > 50
+        for: 1h
+        labels:
+          severity: warning
+          slo: robot_control
+          component: error_budget
+        annotations:
+          summary: "Robot control error budget consumption high"
+          description: |
+            Robot control error budget consumption is {{ $value | humanizePercentage }}
+            which is above 50% threshold for the current period.
+            Consider focusing on reliability improvements.
+
+      - alert: ErrorBudgetConsumptionCritical
+        expr: error_budget_consumption_robot_commands > 75
+        for: 30m
+        labels:
+          severity: critical
+          slo: robot_control
+          component: error_budget
+        annotations:
+          summary: "Robot control error budget consumption critical"
+          description: |
+            Robot control error budget consumption is {{ $value | humanizePercentage }}
+            which is above 75% threshold. Feature development should be paused
+            to focus on reliability improvements.
+
+      - alert: ErrorBudgetExhausted
+        expr: error_budget_consumption_robot_commands > 90
+        for: 15m
+        labels:
+          severity: emergency
+          slo: robot_control
+          component: error_budget
+        annotations:
+          summary: "Robot control error budget nearly exhausted"
+          description: |
+            Robot control error budget consumption is {{ $value | humanizePercentage }}
+            which is above 90% threshold. Immediate action required to prevent
+            SLO violation and potential service degradation.
+
+  - name: slo-safety-critical
+    rules:
+      # Safety-Critical Alerts (Zero Tolerance)
+      - alert: RobotPositionDataCorruption
+        expr: robot_position_validation_failures > 0
+        for: 0s  # Immediate alert
+        labels:
+          severity: emergency
+          slo: data_integrity
+          component: position_tracking
+          safety_critical: "true"
+        annotations:
+          summary: "SAFETY CRITICAL: Robot position data corruption detected"
+          description: |
+            Robot position validation has failed {{ $value }} times.
+            This is a safety-critical issue that could lead to hardware damage
+            or unsafe robot movements. Immediate intervention required.
+          runbook: "https://runbooks.example.com/position-data-corruption"
+          escalation: "immediate"
+
+      - alert: UnauthorizedRobotControl
+        expr: unauthorized_robot_commands > 0
+        for: 0s  # Immediate alert
+        labels:
+          severity: emergency
+          slo: security
+          component: access_control
+          safety_critical: "true"
+        annotations:
+          summary: "SECURITY ALERT: Unauthorized robot control detected"
+          description: |
+            {{ $value }} unauthorized robot control attempts detected.
+            This is a security and safety critical issue.
+            System may be compromised. Immediate investigation required.
+          runbook: "https://runbooks.example.com/security-incident-response"
+          escalation: "immediate"
+
+      - alert: EmergencyStopFailure
+        expr: emergency_stop_response_time > 1.0  # 1 second max
+        for: 0s  # Immediate alert
+        labels:
+          severity: emergency
+          slo: safety
+          component: emergency_systems
+          safety_critical: "true"
+        annotations:
+          summary: "SAFETY CRITICAL: Emergency stop system failure"
+          description: |
+            Emergency stop response time is {{ $value | humanizeDuration }}
+            which exceeds the maximum 1 second safety threshold.
+            This is a critical safety system failure.
+          runbook: "https://runbooks.example.com/emergency-stop-failure"
+          escalation: "immediate"
+
+  - name: slo-user-experience
+    rules:
+      # Frontend Performance SLO
+      - alert: PageLoadTimeSlow
+        expr: frontend_page_load_time_p75 > 3.0  # 3 seconds
+        for: 10m
+        labels:
+          severity: warning
+          slo: user_experience
+          component: frontend
+        annotations:
+          summary: "Frontend page load time exceeding SLO"
+          description: |
+            Frontend P75 page load time is {{ $value | humanizeDuration }}
+            which exceeds the 3 second SLO threshold.
+            User experience may be degraded.
+
+      - alert: UIResponsivenessLow
+        expr: ui_response_time_p95 > 0.1  # 100ms
+        for: 5m
+        labels:
+          severity: warning
+          slo: user_experience
+          component: ui_interaction
+        annotations:
+          summary: "UI responsiveness below SLO threshold"
+          description: |
+            UI P95 response time is {{ $value | humanizeDuration }}
+            which exceeds the 100ms SLO threshold for user interactions.
+            Interface may feel sluggish to users.

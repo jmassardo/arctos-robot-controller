@@ -81,6 +81,14 @@ export const LazyAuditTrail = createLazyComponent(
   }
 );
 
+export const LazyRobot3DViewer = createLazyComponent(
+  () => import('../components/3D/Robot3DViewer'),
+  {
+    loadingMessage: 'Loading 3D Visualization...',
+    errorBoundary: true
+  }
+);
+
 // Create a simple loading component for tabs
 export const TabLoadingFallback = () => (
   <div className="tab-loading">

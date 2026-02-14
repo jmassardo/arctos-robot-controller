@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: arctos-robot-controller
+  labels:
+    name: arctos-robot-controller
+    environment: production
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: arctos-robot-controller-dev
+  labels:
+    name: arctos-robot-controller-dev
+    environment: development
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: arctos-robot-controller-staging
+  labels:
+    name: arctos-robot-controller-staging
+    environment: staging

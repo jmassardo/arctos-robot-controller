@@ -16,13 +16,13 @@ const STATIC_ASSETS = [
   '/logo192.png',
   '/logo512.png',
   // Fallback offline page
-  '/offline.html'
+  '/offline.html',
 ];
 
 // API endpoints with caching strategies
 const API_CACHE_CONFIG = {
   '/api/config': { ttl: 5 * 60 * 1000, strategy: 'networkFirst' }, // 5 minutes, network first
-  '/api/positions': { ttl: 2 * 60 * 1000, strategy: 'networkFirst' }, // 2 minutes, network first  
+  '/api/positions': { ttl: 2 * 60 * 1000, strategy: 'networkFirst' }, // 2 minutes, network first
   '/api/groups': { ttl: 5 * 60 * 1000, strategy: 'networkFirst' }, // 5 minutes, network first
   '/api/robot-profiles': { ttl: 10 * 60 * 1000, strategy: 'cacheFirst' }, // 10 minutes, cache first
   '/api/theme': { ttl: 30 * 60 * 1000, strategy: 'cacheFirst' }, // 30 minutes, cache first
@@ -34,21 +34,21 @@ const MOBILE_CONFIG = {
   maxCacheSize: 50 * 1024 * 1024, // 50MB limit for mobile
   prioritizeNetworkOnSlowConnection: true,
   compressResponses: true,
-  preloadCriticalResources: true
+  preloadCriticalResources: true,
 };
 
 // Install event - cache static assets
-self.addEventListener('install', (event) => {
+self.addEventListener('install', event => {
   event.waitUntil(
     Promise.all([
       // Cache static assets
-      caches.open(STATIC_CACHE_NAME).then((cache) => {
+      caches.open(STATIC_CACHE_NAME).then(cache => {
         return cache.addAll(STATIC_ASSETS);
       }),
       // Initialize API cache
       caches.open(API_CACHE_NAME),
       // Initialize runtime cache
-      caches.open(RUNTIME_CACHE_NAME)
+      caches.open(RUNTIME_CACHE_NAME),
     ]).then(() => {
       // Force activation of new service worker
       return self.skipWaiting();
@@ -57,34 +57,34 @@ self.addEventListener('install', (event) => {
 });
 
 // Activate event - clean up old caches
-self.addEventListener('activate', (event) => {
+self.addEventListener('activate', event => {
   event.waitUntil(
     Promise.all([
       // Clean up old caches
-      caches.keys().then((cacheNames) => {
+      caches.keys().then(cacheNames => {
         return Promise.all(
           cacheNames
-            .filter((cacheName) => {
+            .filter(cacheName => {
               return (
                 (cacheName.includes('arctos-static-') && cacheName !== STATIC_CACHE_NAME) ||
                 (cacheName.includes('arctos-api-') && cacheName !== API_CACHE_NAME) ||
                 (cacheName.includes('arctos-runtime-') && cacheName !== RUNTIME_CACHE_NAME)
               );
             })
-            .map((cacheName) => caches.delete(cacheName))
+            .map(cacheName => caches.delete(cacheName))
         );
       }),
       // Take control of all clients
-      self.clients.claim()
+      self.clients.claim(),
     ])
   );
 });
 
 // Fetch event - handle all network requests
-self.addEventListener('fetch', (event) => {
+self.addEventListener('fetch', event => {
   const { request } = event;
   const url = new URL(request.url);
-  
+
   // Skip non-GET requests and chrome-extension requests
   if (request.method !== 'GET' || url.protocol === 'chrome-extension:') {
     return;
@@ -92,8 +92,9 @@ self.addEventListener('fetch', (event) => {
 
   // Mobile optimization: check connection speed
   const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-  const isSlowConnection = connection && (connection.effectiveType === 'slow-2g' || connection.effectiveType === '2g');
-  
+  const isSlowConnection =
+    connection && (connection.effectiveType === 'slow-2g' || connection.effectiveType === '2g');
+
   // Handle different types of requests
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(handleApiRequest(request, isSlowConnection));
@@ -108,20 +109,20 @@ async function handleApiRequest(request, isSlowConnection) {
   const url = new URL(request.url);
   const pathname = url.pathname;
   const config = API_CACHE_CONFIG[pathname];
-  
+
   if (!config) {
     // No caching config, just fetch
     return fetch(request);
   }
-  
+
   const cache = await caches.open(API_CACHE);
   const cachedResponse = await cache.match(request);
-  
+
   // Check if cached response is still fresh
   if (cachedResponse) {
     const cachedTime = parseInt(cachedResponse.headers.get('sw-cached-at') || '0');
     const isStale = Date.now() - cachedTime > config.ttl;
-    
+
     if (!isStale) {
       // Fresh cached response
       return cachedResponse;
@@ -130,33 +131,33 @@ async function handleApiRequest(request, isSlowConnection) {
       return cachedResponse;
     }
   }
-  
+
   try {
     // Attempt network request with mobile timeout
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), isSlowConnection ? 15000 : 8000);
-    
-    const networkResponse = await fetch(request, { 
+
+    const networkResponse = await fetch(request, {
       signal: controller.signal,
       headers: {
         ...request.headers,
-        'Cache-Control': isSlowConnection ? 'no-cache' : 'no-store'
-      }
+        'Cache-Control': isSlowConnection ? 'no-cache' : 'no-store',
+      },
     });
     clearTimeout(timeoutId);
-    
+
     if (networkResponse.ok) {
       // Clone response and add timestamp
       const responseToCache = networkResponse.clone();
       const headers = new Headers(responseToCache.headers);
       headers.set('sw-cached-at', Date.now().toString());
-      
+
       const cachedResponse = new Response(responseToCache.body, {
         status: responseToCache.status,
         statusText: responseToCache.statusText,
-        headers
+        headers,
       });
-      
+
       // Cache the response
       await cache.put(request, cachedResponse);
       return networkResponse;
@@ -168,21 +169,21 @@ async function handleApiRequest(request, isSlowConnection) {
     }
   } catch (error) {
     console.log('Network request failed:', error);
-    
+
     if (cachedResponse) {
       // Return cached response on network error
       return cachedResponse;
     } else {
       // Return offline response
       return new Response(
-        JSON.stringify({ 
-          error: 'Network unavailable', 
+        JSON.stringify({
+          error: 'Network unavailable',
           offline: true,
-          message: 'Please check your internet connection' 
+          message: 'Please check your internet connection',
         }),
         {
           status: 503,
-          headers: { 'Content-Type': 'application/json' }
+          headers: { 'Content-Type': 'application/json' },
         }
       );
     }
@@ -192,22 +193,24 @@ async function handleApiRequest(request, isSlowConnection) {
 async function handleStaticRequest(request, isSlowConnection) {
   const cache = await caches.open(STATIC_CACHE);
   const cachedResponse = await cache.match(request);
-  
+
   if (cachedResponse) {
     // Return cached static asset immediately
     if (!isSlowConnection) {
       // Update cache in background on fast connections
-      fetch(request).then(networkResponse => {
-        if (networkResponse.ok) {
-          cache.put(request, networkResponse.clone());
-        }
-      }).catch(() => {
-        // Silent fail for background updates
-      });
+      fetch(request)
+        .then(networkResponse => {
+          if (networkResponse.ok) {
+            cache.put(request, networkResponse.clone());
+          }
+        })
+        .catch(() => {
+          // Silent fail for background updates
+        });
     }
     return cachedResponse;
   }
-  
+
   // Not in cache, fetch from network
   try {
     const networkResponse = await fetch(request);
@@ -226,7 +229,7 @@ async function handleStaticRequest(request, isSlowConnection) {
 
 async function handleRuntimeRequest(request, isSlowConnection) {
   const cache = await caches.open(RUNTIME_CACHE);
-  
+
   // For HTML pages, always try network first on fast connections
   if (request.headers.get('accept')?.includes('text/html') && !isSlowConnection) {
     try {
@@ -239,13 +242,13 @@ async function handleRuntimeRequest(request, isSlowConnection) {
       // Fall through to cache
     }
   }
-  
+
   // Try cache first for other resources or slow connections
   const cachedResponse = await cache.match(request);
   if (cachedResponse) {
     return cachedResponse;
   }
-  
+
   // Not in cache, fetch from network
   try {
     const networkResponse = await fetch(request);
@@ -260,11 +263,11 @@ async function handleRuntimeRequest(request, isSlowConnection) {
     }
     throw error;
   }
-}// Handle API requests with intelligent caching
+} // Handle API requests with intelligent caching
 async function handleAPIRequest(request) {
   const url = new URL(request.url);
   const pathname = url.pathname;
-  
+
   // Check if this endpoint should be cached
   const cacheKey = Object.keys(API_CACHE_CONFIG).find(key => pathname.startsWith(key));
   if (!cacheKey) {
@@ -274,12 +277,12 @@ async function handleAPIRequest(request) {
 
   const cache = await caches.open(API_CACHE_NAME);
   const cachedResponse = await cache.match(request);
-  
+
   if (cachedResponse) {
     const cacheTime = parseInt(cachedResponse.headers.get('sw-cache-time') || '0');
     const ttl = API_CACHE_CONFIG[cacheKey];
     const age = Date.now() - cacheTime;
-    
+
     if (age < ttl) {
       // Cache is still valid
       return cachedResponse;
@@ -289,23 +292,23 @@ async function handleAPIRequest(request) {
   // Fetch fresh data
   try {
     const networkResponse = await fetch(request);
-    
+
     if (networkResponse.ok) {
       // Clone response and add cache timestamp
       const responseToCache = networkResponse.clone();
       const headers = new Headers(responseToCache.headers);
       headers.set('sw-cache-time', Date.now().toString());
-      
+
       const cachedResponse = new Response(await responseToCache.blob(), {
         status: responseToCache.status,
         statusText: responseToCache.statusText,
-        headers: headers
+        headers: headers,
       });
-      
+
       // Cache the response
       cache.put(request, cachedResponse);
     }
-    
+
     return networkResponse;
   } catch (error) {
     // Network failed, return cached version if available
@@ -320,11 +323,11 @@ async function handleAPIRequest(request) {
 async function handleStaticRequest(request) {
   const cache = await caches.open(STATIC_CACHE_NAME);
   const cachedResponse = await cache.match(request);
-  
+
   if (cachedResponse) {
     return cachedResponse;
   }
-  
+
   // Not in cache, fetch and cache
   try {
     const networkResponse = await fetch(request);
@@ -343,23 +346,23 @@ async function handleHTMLRequest(request) {
   try {
     // Always try network first for HTML
     const networkResponse = await fetch(request);
-    
+
     if (networkResponse.ok) {
       // Cache successful response
       const cache = await caches.open(RUNTIME_CACHE_NAME);
       cache.put(request, networkResponse.clone());
     }
-    
+
     return networkResponse;
   } catch (error) {
     // Network failed, try cache
     const cache = await caches.open(RUNTIME_CACHE_NAME);
     const cachedResponse = await cache.match(request);
-    
+
     if (cachedResponse) {
       return cachedResponse;
     }
-    
+
     // No cached version, return offline page
     return new Response(
       `
@@ -409,7 +412,7 @@ async function handleHTMLRequest(request) {
       `,
       {
         status: 200,
-        headers: { 'Content-Type': 'text/html' }
+        headers: { 'Content-Type': 'text/html' },
       }
     );
   }
@@ -418,14 +421,14 @@ async function handleHTMLRequest(request) {
 // Handle runtime requests (images, fonts, etc.)
 async function handleRuntimeRequest(request) {
   const cache = await caches.open(RUNTIME_CACHE_NAME);
-  
+
   try {
     const networkResponse = await fetch(request);
-    
+
     if (networkResponse.ok) {
       cache.put(request, networkResponse.clone());
     }
-    
+
     return networkResponse;
   } catch (error) {
     const cachedResponse = await cache.match(request);
@@ -437,19 +440,21 @@ async function handleRuntimeRequest(request) {
 }
 
 // Handle messages from main thread
-self.addEventListener('message', (event) => {
+self.addEventListener('message', event => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
-  
+
   if (event.data && event.data.type === 'CLEAR_CACHE') {
     event.waitUntil(clearAllCaches());
   }
-  
+
   if (event.data && event.data.type === 'CACHE_STATS') {
-    event.waitUntil(getCacheStats().then(stats => {
-      event.ports[0].postMessage(stats);
-    }));
+    event.waitUntil(
+      getCacheStats().then(stats => {
+        event.ports[0].postMessage(stats);
+      })
+    );
   }
 });
 
@@ -457,9 +462,7 @@ self.addEventListener('message', (event) => {
 async function clearAllCaches() {
   const cacheNames = await caches.keys();
   await Promise.all(
-    cacheNames
-      .filter(name => name.includes('arctos-'))
-      .map(name => caches.delete(name))
+    cacheNames.filter(name => name.includes('arctos-')).map(name => caches.delete(name))
   );
 }
 
@@ -469,15 +472,15 @@ async function getCacheStats() {
   const stats = {
     caches: {},
     totalSize: 0,
-    totalItems: 0
+    totalItems: 0,
   };
-  
+
   for (const cacheName of cacheNames) {
     if (cacheName.includes('arctos-')) {
       const cache = await caches.open(cacheName);
       const keys = await cache.keys();
       const size = await Promise.all(
-        keys.map(async (request) => {
+        keys.map(async request => {
           const response = await cache.match(request);
           if (response) {
             const blob = await response.blob();
@@ -486,18 +489,18 @@ async function getCacheStats() {
           return 0;
         })
       );
-      
+
       const cacheSize = size.reduce((total, itemSize) => total + itemSize, 0);
       stats.caches[cacheName] = {
         items: keys.length,
         size: cacheSize,
-        sizeFormatted: formatBytes(cacheSize)
+        sizeFormatted: formatBytes(cacheSize),
       };
       stats.totalItems += keys.length;
       stats.totalSize += cacheSize;
     }
   }
-  
+
   stats.totalSizeFormatted = formatBytes(stats.totalSize);
   return stats;
 }
@@ -505,18 +508,18 @@ async function getCacheStats() {
 // Format bytes for human reading
 function formatBytes(bytes, decimals = 2) {
   if (bytes === 0) return '0 Bytes';
-  
+
   const k = 1024;
   const dm = decimals < 0 ? 0 : decimals;
   const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-  
+
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  
+
   return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 }
 
 // Background sync for offline actions
-self.addEventListener('sync', (event) => {
+self.addEventListener('sync', event => {
   if (event.tag === 'background-sync') {
     event.waitUntil(doBackgroundSync());
   }

@@ -1,0 +1,86 @@
+{
+  "suites": {
+    "owasp-top10-security.test.js": {
+      "exitCode": 1,
+      "output": "node:internal/modules/cjs/loader:1423\n  throw err;\n  ^\n\nError: Cannot find module 'supertest'\nRequire stack:\n- /Users/jenna/code/arctos-robot-controller/test/security-tests/owasp-top10-security.test.js\n    at Module._resolveFilename (node:internal/modules/cjs/loader:1420:15)\n    at defaultResolveImpl (node:internal/modules/cjs/loader:1058:19)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1063:22)\n    at Module._load (node:internal/modules/cjs/loader:1226:37)\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:244:24)\n    at Module.require (node:internal/modules/cjs/loader:1503:12)\n    at require (node:internal/modules/helpers:152:16)\n    at Object.<anonymous> (/Users/jenna/code/arctos-robot-controller/test/security-tests/owasp-top10-security.test.js:20:17)\n    at Module._compile (node:internal/modules/cjs/loader:1760:14) {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: [\n    '/Users/jenna/code/arctos-robot-controller/test/security-tests/owasp-top10-security.test.js'\n  ]\n}\n\nNode.js v24.8.0\n",
+      "tests": 0,
+      "passed": 0,
+      "failed": 0,
+      "criticalIssues": 0,
+      "status": "failed"
+    },
+    "robot-security.test.js": {
+      "exitCode": 1,
+      "output": "node:internal/modules/cjs/loader:1423\n  throw err;\n  ^\n\nError: Cannot find module 'supertest'\nRequire stack:\n- /Users/jenna/code/arctos-robot-controller/test/security-tests/robot-security.test.js\n    at Module._resolveFilename (node:internal/modules/cjs/loader:1420:15)\n    at defaultResolveImpl (node:internal/modules/cjs/loader:1058:19)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1063:22)\n    at Module._load (node:internal/modules/cjs/loader:1226:37)\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:244:24)\n    at Module.require (node:internal/modules/cjs/loader:1503:12)\n    at require (node:internal/modules/helpers:152:16)\n    at Object.<anonymous> (/Users/jenna/code/arctos-robot-controller/test/security-tests/robot-security.test.js:17:17)\n    at Module._compile (node:internal/modules/cjs/loader:1760:14) {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: [\n    '/Users/jenna/code/arctos-robot-controller/test/security-tests/robot-security.test.js'\n  ]\n}\n\nNode.js v24.8.0\n",
+      "tests": 0,
+      "passed": 0,
+      "failed": 0,
+      "criticalIssues": 0,
+      "status": "failed"
+    },
+    "penetration-testing.test.js": {
+      "exitCode": 1,
+      "output": "node:internal/modules/cjs/loader:1423\n  throw err;\n  ^\n\nError: Cannot find module 'supertest'\nRequire stack:\n- /Users/jenna/code/arctos-robot-controller/test/security-tests/penetration-testing.test.js\n    at Module._resolveFilename (node:internal/modules/cjs/loader:1420:15)\n    at defaultResolveImpl (node:internal/modules/cjs/loader:1058:19)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1063:22)\n    at Module._load (node:internal/modules/cjs/loader:1226:37)\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:244:24)\n    at Module.require (node:internal/modules/cjs/loader:1503:12)\n    at require (node:internal/modules/helpers:152:16)\n    at Object.<anonymous> (/Users/jenna/code/arctos-robot-controller/test/security-tests/penetration-testing.test.js:19:17)\n    at Module._compile (node:internal/modules/cjs/loader:1760:14) {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: [\n    '/Users/jenna/code/arctos-robot-controller/test/security-tests/penetration-testing.test.js'\n  ]\n}\n\nNode.js v24.8.0\n",
+      "tests": 0,
+      "passed": 0,
+      "failed": 0,
+      "criticalIssues": 0,
+      "status": "failed"
+    },
+    "dependency-security.test.js": {
+      "exitCode": 1,
+      "output": "/Users/jenna/code/arctos-robot-controller/test/security-tests/dependency-security.test.js:195\n  isVersionVulnerable(installed, vulnerable) {\n                                             ^\n\nSyntaxError: Unexpected token '{'\n    at wrapSafe (node:internal/modules/cjs/loader:1691:18)\n    at Module._compile (node:internal/modules/cjs/loader:1734:20)\n    at Object..js (node:internal/modules/cjs/loader:1893:10)\n    at Module.load (node:internal/modules/cjs/loader:1480:32)\n    at Module._load (node:internal/modules/cjs/loader:1299:12)\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:244:24)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\n    at node:internal/main/run_main_module:33:47\n\nNode.js v24.8.0\n",
+      "tests": 0,
+      "passed": 0,
+      "failed": 0,
+      "criticalIssues": 0,
+      "status": "failed"
+    }
+  },
+  "summary": {
+    "totalTests": 0,
+    "totalPassed": 0,
+    "totalFailed": 0,
+    "criticalIssues": 0,
+    "securityScore": 0,
+    "riskLevel": "MINIMAL"
+  },
+  "startTime": "2025-09-21T10:53:11.788Z",
+  "endTime": "2025-09-21T10:53:11.883Z",
+  "duration": 92,
+  "recommendations": [
+    {
+      "priority": "HIGH",
+      "category": "Security Testing Coverage",
+      "action": "Improve security controls to increase overall security score",
+      "impact": "Enhances overall security posture and reduces risk exposure"
+    },
+    {
+      "priority": "MEDIUM",
+      "category": "Continuous Security Monitoring",
+      "action": "Implement automated security testing in CI/CD pipeline",
+      "impact": "Prevents security regressions and maintains security standards"
+    },
+    {
+      "priority": "LOW",
+      "category": "Security Training",
+      "action": "Provide security awareness training for development team",
+      "impact": "Reduces likelihood of introducing security vulnerabilities"
+    }
+  ],
+  "complianceStatus": {
+    "OWASP Top 10": "NON_COMPLIANT",
+    "Robot Safety Standards": "COMPLIANT",
+    "Data Protection": "COMPLIANT",
+    "Security Logging": "COMPLIANT"
+  },
+  "actionItems": [
+    {
+      "priority": 3,
+      "title": "Implement Automated Security Testing",
+      "description": "Integrate security testing into continuous integration pipeline",
+      "assignee": "DevOps Team",
+      "dueDate": "2025-10-21T10:53:11.883Z"
+    }
+  ]
+}

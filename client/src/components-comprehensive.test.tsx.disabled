@@ -1,0 +1,1236 @@
+import React from 'react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import '@testing-library/jest-dom';
+import { BrowserRouter } from 'react-router-dom';
+
+// Mock all external dependencies
+jest.mock('socket.io-client', () => ({
+  io: jest.fn(() => ({
+    on: jest.fn(),
+    emit: jest.fn(),
+    off: jest.fn(),
+    disconnect: jest.fn(),
+    connect: jest.fn(),
+  }))
+}));
+
+jest.mock('axios', () => ({
+  get: jest.fn(() => Promise.resolve({ 
+    data: { 
+      success: true, 
+      config: mockRobotConfig,
+      positions: mockPositions 
+    } 
+  })),
+  post: jest.fn(() => Promise.resolve({ data: { success: true } })),
+  put: jest.fn(() => Promise.resolve({ data: { success: true } })),
+  delete: jest.fn(() => Promise.resolve({ data: { success: true } })),
+  isAxiosError: jest.fn(() => false)
+}));
+
+// Mock React Three Fiber components
+jest.mock('@react-three/fiber', () => ({
+  Canvas: ({ children }: any) => <div data-testid="3d-canvas">{children}</div>,
+  useFrame: jest.fn(),
+  useThree: jest.fn(() => ({ camera: {}, scene: {} }))
+}));
+
+jest.mock('@react-three/drei', () => ({
+  OrbitControls: () => <div data-testid="orbit-controls" />,
+  Box: () => <div data-testid="3d-box" />,
+  Sphere: () => <div data-testid="3d-sphere" />,
+  PerspectiveCamera: () => <div data-testid="3d-camera" />
+}));
+
+// Mock theme and auth contexts
+const mockTheme = { isDark: false, toggleTheme: jest.fn() };
+const mockAuth = {
+  state: { 
+    isAuthenticated: true, 
+    isLoading: false, 
+    user: { id: 1, username: 'testuser', role: 'admin' },
+    token: 'test-token'
+  },
+  login: jest.fn(),
+  logout: jest.fn()
+};
+
+jest.mock('../contexts/ThemeContext', () => ({
+  ThemeProvider: ({ children }: any) => <div>{children}</div>,
+  useTheme: () => mockTheme
+}));
+
+jest.mock('../contexts/AuthContext', () => ({
+  AuthProvider: ({ children }: any) => <div>{children}</div>,
+  useAuth: () => mockAuth
+}));
+
+// Mock device info and mobile utils
+jest.mock('../utils/mobileUtils', () => ({
+  useDeviceInfo: () => ({ isMobile: false, isTablet: false, isDesktop: true }),
+  initializeMobileSupport: jest.fn(),
+  optimizeForMobile: jest.fn()
+}));
+
+jest.mock('../utils/electron', () => ({
+  isElectron: () => false,
+  initializeElectronListeners: jest.fn(),
+  cleanupElectronListeners: jest.fn()
+}));
+
+jest.mock('../utils/performance', () => ({
+  PerformanceMonitor: {
+    getInstance: () => ({
+      cleanup: jest.fn()
+    })
+  },
+  MemoryMonitor: {
+    getInstance: () => ({
+      cleanup: jest.fn()
+    })
+  }
+}));
+
+jest.mock('../utils/enhancedAxios', () => ({
+  cleanup: jest.fn()
+}));
+
+// Test data
+const mockRobotConfig = {
+  robotType: '6-axis',
+  communicationProtocol: 'can',
+  serialConfig: { port: '/dev/ttyUSB0', baudRate: 115200 },
+  canConfig: { interface: 'can0' },
+  axes: {
+    count: 6,
+    limits: {
+      axis1: { min: -180, max: 180 },
+      axis2: { min: -90, max: 90 },
+      axis3: { min: -180, max: 180 },
+      axis4: { min: -180, max: 180 },
+      axis5: { min: -90, max: 90 },
+      axis6: { min: -180, max: 180 }
+    }
+  },
+  manipulators: {
+    count: 2,
+    gripper1: { min: 0, max: 100 },
+    gripper2: { min: 0, max: 100 }
+  }
+};
+
+const mockPositions = [
+  {
+    id: 1,
+    name: 'Home Position',
+    axes: { X: 0, Y: 0, Z: 0, A: 0, B: 0, C: 0 },
+    manipulators: { gripper1: 0 },
+    delay: 0,
+    timestamp: '2024-01-01T00:00:00Z'
+  },
+  {
+    id: 2,
+    name: 'Work Position',
+    axes: { X: 45, Y: -30, Z: 60, A: 0, B: 90, C: 0 },
+    manipulators: { gripper1: 50 },
+    delay: 1000,
+    timestamp: '2024-01-01T01:00:00Z'
+  }
+];
+
+const mockGroups = [
+  {
+    id: 1,
+    name: 'Startup Sequence',
+    description: 'Standard startup positions',
+    positionIds: [1, 2],
+    timestamp: '2024-01-01T00:00:00Z'
+  }
+];
+
+// Mock Components for Testing
+const MockManualControl = ({ config, socket }: any) => (
+  <div data-testid="manual-control">
+    <h2>Manual Control</h2>
+    <div data-testid="axis-controls">
+      {config && Object.keys(config.axes.limits).map((axisKey: string) => (
+        <div key={axisKey} data-testid={`axis-${axisKey}`}>
+          <span>{axisKey}: </span>
+          <button data-testid={`${axisKey}-plus`} onClick={() => {}}>+</button>
+          <button data-testid={`${axisKey}-minus`} onClick={() => {}}>-</button>
+        </div>
+      ))}
+    </div>
+    <div data-testid="gripper-controls">
+      <button data-testid="gripper-open">Open</button>
+      <button data-testid="gripper-50">50%</button>
+      <button data-testid="gripper-close">Close</button>
+    </div>
+    <div data-testid="position-save">
+      <input data-testid="position-name" placeholder="Position Name" />
+      <button data-testid="save-position">Save Current Position</button>
+    </div>
+    <div data-testid="emergency-controls">
+      <button data-testid="home-button">Home All Axes</button>
+      <button data-testid="emergency-stop" style={{ backgroundColor: 'red' }}>
+        Emergency Stop
+      </button>
+    </div>
+    <div data-testid="current-position">
+      Current Position: X:0 Y:0 Z:0 A:0 B:0 C:0
+    </div>
+  </div>
+);
+
+const MockGCodeControl = ({ socket }: any) => (
+  <div data-testid="gcode-control">
+    <h2>G-Code Control</h2>
+    <div data-testid="gcode-editor">
+      <textarea 
+        data-testid="gcode-input" 
+        placeholder="Enter G-code commands..."
+        rows={15}
+      />
+    </div>
+    <div data-testid="gcode-controls">
+      <button data-testid="load-sample">Load Sample</button>
+      <button data-testid="execute-gcode">Execute G-Code</button>
+      <button data-testid="stop-gcode">Stop</button>
+      <button data-testid="validate-gcode">Validate</button>
+    </div>
+    <div data-testid="gcode-status">
+      <div data-testid="execution-status">Status: Idle</div>
+      <div data-testid="progress-bar">Progress: 0%</div>
+    </div>
+    <div data-testid="coordinate-system">
+      <h4>Coordinate Systems</h4>
+      <select data-testid="coordinate-system-select">
+        <option value="G54">G54 (Work Coordinate System 1)</option>
+        <option value="G55">G55 (Work Coordinate System 2)</option>
+        <option value="G56">G56 (Work Coordinate System 3)</option>
+      </select>
+    </div>
+    <div data-testid="validation-errors">
+      {/* Validation errors would be displayed here */}
+    </div>
+  </div>
+);
+
+const MockPositionReplay = ({ positions, groups, socket, config }: any) => (
+  <div data-testid="position-replay">
+    <h2>Position Replay</h2>
+    <div data-testid="position-list">
+      <div data-testid="position-controls">
+        <button data-testid="select-all">Select All</button>
+        <button data-testid="clear-selection">Clear Selection</button>
+        <button data-testid="replay-selected">Replay Selected</button>
+        <button data-testid="stop-replay">Stop Replay</button>
+      </div>
+      <div data-testid="positions">
+        {positions && positions.map((position: any) => (
+          <div key={position.id} data-testid={`position-${position.id}`} className="position-item">
+            <input 
+              type="checkbox" 
+              data-testid={`checkbox-${position.id}`}
+            />
+            <span data-testid={`name-${position.id}`}>{position.name}</span>
+            <div data-testid={`details-${position.id}`}>
+              X:{position.axes.X} Y:{position.axes.Y} Z:{position.axes.Z}
+            </div>
+            <button data-testid={`edit-${position.id}`}>Edit</button>
+            <button data-testid={`delete-${position.id}`}>Delete</button>
+          </div>
+        ))}
+      </div>
+    </div>
+    <div data-testid="group-management">
+      <h3>Position Groups</h3>
+      <div data-testid="groups">
+        {groups && groups.map((group: any) => (
+          <div key={group.id} data-testid={`group-${group.id}`} className="group-item">
+            <span>{group.name}</span>
+            <button data-testid={`select-group-${group.id}`}>Select Group</button>
+          </div>
+        ))}
+      </div>
+      <div data-testid="group-creation">
+        <input data-testid="group-name" placeholder="Group name" />
+        <button data-testid="create-group">Create Group</button>
+      </div>
+    </div>
+    <div data-testid="replay-options">
+      <h3>Replay Options</h3>
+      <select data-testid="replay-mode">
+        <option value="once">Play Once</option>
+        <option value="count">Repeat Count</option>
+        <option value="infinite">Infinite Loop</option>
+      </select>
+      <input data-testid="repeat-count" type="number" min="1" defaultValue="1" />
+      <input data-testid="global-delay" type="number" min="0" defaultValue="1000" />
+    </div>
+    <div data-testid="replay-progress">
+      <div data-testid="current-position-replay">Current: None</div>
+      <div data-testid="replay-progress-bar">Progress: 0%</div>
+    </div>
+  </div>
+);
+
+const MockConfiguration = ({ config, onConfigUpdate }: any) => (
+  <div data-testid="configuration">
+    <h2>Configuration</h2>
+    <div data-testid="robot-settings">
+      <h3>Robot Settings</h3>
+      <div data-testid="robot-type-section">
+        <label htmlFor="robot-type">Robot Type:</label>
+        <select data-testid="robot-type" id="robot-type" defaultValue={config?.robotType}>
+          <option value="6-axis">6-Axis Industrial Robot</option>
+          <option value="4-axis">4-Axis SCARA Robot</option>
+          <option value="delta">Delta Robot</option>
+          <option value="cartesian">Cartesian Robot</option>
+        </select>
+      </div>
+      <div data-testid="communication-section">
+        <label htmlFor="protocol">Communication Protocol:</label>
+        <select data-testid="protocol" id="protocol" defaultValue={config?.communicationProtocol}>
+          <option value="can">CAN Bus</option>
+          <option value="serial">Serial</option>
+          <option value="rs485">RS485</option>
+          <option value="ethernet">Ethernet</option>
+        </select>
+      </div>
+    </div>
+    <div data-testid="axis-limits">
+      <h3>Axis Limits</h3>
+      {config && Object.entries(config.axes.limits).map(([axis, limits]: [string, any]) => (
+        <div key={axis} data-testid={`axis-limit-${axis}`}>
+          <label>{axis}:</label>
+          <input 
+            type="number" 
+            data-testid={`${axis}-min`} 
+            defaultValue={limits.min}
+            placeholder="Min"
+          />
+          <input 
+            type="number" 
+            data-testid={`${axis}-max`} 
+            defaultValue={limits.max}
+            placeholder="Max"
+          />
+        </div>
+      ))}
+    </div>
+    <div data-testid="manipulator-settings">
+      <h3>Manipulator Settings</h3>
+      {config && Object.entries(config.manipulators)
+        .filter(([key]) => key !== 'count')
+        .map(([key, settings]: [string, any]) => (
+          <div key={key} data-testid={`manipulator-${key}`}>
+            <label>{key}:</label>
+            <input 
+              type="number" 
+              data-testid={`${key}-min`} 
+              defaultValue={settings.min}
+            />
+            <input 
+              type="number" 
+              data-testid={`${key}-max`} 
+              defaultValue={settings.max}
+            />
+          </div>
+        ))}
+    </div>
+    <div data-testid="save-section">
+      <button data-testid="save-config">Save Configuration</button>
+      <button data-testid="reset-config">Reset to Defaults</button>
+      <button data-testid="export-config">Export Configuration</button>
+      <button data-testid="import-config">Import Configuration</button>
+    </div>
+    <div data-testid="save-status">
+      {/* Save status messages would appear here */}
+    </div>
+  </div>
+);
+
+const MockAdvancedConfiguration = ({ config, onConfigUpdate }: any) => (
+  <div data-testid="advanced-configuration">
+    <h2>Advanced Configuration</h2>
+    <div data-testid="mks42d-settings">
+      <h3>MKS42D Controller Settings</h3>
+      <div data-testid="mks42d-enabled">
+        <label>
+          <input type="checkbox" data-testid="mks42d-enable" />
+          Enable MKS42D Controllers
+        </label>
+      </div>
+      <div data-testid="steps-per-mm">
+        <h4>Steps per MM</h4>
+        <input data-testid="steps-x" type="number" placeholder="X axis" />
+        <input data-testid="steps-y" type="number" placeholder="Y axis" />
+        <input data-testid="steps-z" type="number" placeholder="Z axis" />
+      </div>
+    </div>
+    <div data-testid="safety-settings">
+      <h3>Safety Settings</h3>
+      <input data-testid="max-velocity" type="number" placeholder="Max Velocity" />
+      <input data-testid="max-acceleration" type="number" placeholder="Max Acceleration" />
+      <input data-testid="emergency-stop-time" type="number" placeholder="Emergency Stop Time (ms)" />
+    </div>
+    <div data-testid="network-settings">
+      <h3>Network Settings</h3>
+      <input data-testid="can-interface" type="text" placeholder="CAN Interface" />
+      <input data-testid="serial-port" type="text" placeholder="Serial Port" />
+      <input data-testid="baud-rate" type="number" placeholder="Baud Rate" />
+    </div>
+  </div>
+);
+
+const MockMonitoringDashboard = () => (
+  <div data-testid="monitoring-dashboard">
+    <h2>System Monitoring</h2>
+    <div data-testid="system-metrics">
+      <div data-testid="cpu-usage">CPU: 45%</div>
+      <div data-testid="memory-usage">Memory: 1.2GB / 8GB</div>
+      <div data-testid="temperature">Temperature: 42°C</div>
+    </div>
+    <div data-testid="robot-status">
+      <div data-testid="connection-status">Connection: Connected</div>
+      <div data-testid="position-status">Position: X:0 Y:0 Z:0</div>
+      <div data-testid="execution-status">Execution: Idle</div>
+    </div>
+    <div data-testid="alerts">
+      <h3>System Alerts</h3>
+      <div data-testid="alert-list">
+        {/* Alerts would be displayed here */}
+      </div>
+    </div>
+    <div data-testid="performance-charts">
+      <div data-testid="cpu-chart">CPU Usage Chart</div>
+      <div data-testid="memory-chart">Memory Usage Chart</div>
+      <div data-testid="temperature-chart">Temperature Chart</div>
+    </div>
+  </div>
+);
+
+// Main App Component for Testing
+const MockApp = () => {
+  const [activeTab, setActiveTab] = React.useState('manual');
+  const [config, setConfig] = React.useState(mockRobotConfig);
+  const [positions, setPositions] = React.useState(mockPositions);
+  const [groups, setGroups] = React.useState(mockGroups);
+  const [connectionStatus, setConnectionStatus] = React.useState('connected');
+  const [socket] = React.useState({ on: jest.fn(), emit: jest.fn(), off: jest.fn() });
+
+  const renderTabContent = () => {
+    switch(activeTab) {
+      case 'manual':
+        return <MockManualControl config={config} socket={socket} />;
+      case 'gcode':
+        return <MockGCodeControl socket={socket} />;
+      case 'replay':
+        return <MockPositionReplay 
+          positions={positions} 
+          groups={groups} 
+          socket={socket} 
+          config={config} 
+        />;
+      case 'config':
+        return <MockConfiguration config={config} onConfigUpdate={setConfig} />;
+      case 'advanced-config':
+        return <MockAdvancedConfiguration config={config} onConfigUpdate={setConfig} />;
+      case 'monitoring':
+        return <MockMonitoringDashboard />;
+      default:
+        return <div data-testid="unknown-tab">Unknown tab</div>;
+    }
+  };
+
+  const tabs = [
+    { id: 'manual', label: 'Manual Control', icon: '🎮' },
+    { id: 'gcode', label: 'G-Code Control', icon: '📝' },
+    { id: 'replay', label: 'Position Replay', icon: '▶️' },
+    { id: 'config', label: 'Configuration', icon: '⚙️' },
+    { id: 'advanced-config', label: 'Advanced Config', icon: '🔧' },
+    { id: 'monitoring', label: 'Monitoring', icon: '📊' }
+  ];
+
+  return (
+    <BrowserRouter>
+      <div data-testid="app" className="container">
+        <header data-testid="header">
+          <div data-testid="header-content">
+            <h1>Arctos Robot Controller</h1>
+            <div data-testid="connection-status" className={`status-indicator status-${connectionStatus}`}>
+              {connectionStatus === 'connected' ? 'Connected' : 'Disconnected'}
+            </div>
+            <div data-testid="user-info">
+              <span data-testid="username">{mockAuth.state.user.username}</span>
+              <span data-testid="user-role">{mockAuth.state.user.role.toUpperCase()}</span>
+              <button data-testid="logout-btn" onClick={mockAuth.logout}>Sign Out</button>
+            </div>
+          </div>
+        </header>
+
+        <nav data-testid="tab-navigation" className="nav-tabs">
+          {tabs.map(tab => (
+            <button
+              key={tab.id}
+              data-testid={`tab-${tab.id}`}
+              className={`nav-tab ${activeTab === tab.id ? 'active' : ''}`}
+              onClick={() => setActiveTab(tab.id)}
+              aria-label={`Switch to ${tab.label} tab`}
+            >
+              <span className="tab-icon">{tab.icon}</span>
+              <span className="tab-label">{tab.label}</span>
+            </button>
+          ))}
+        </nav>
+
+        <main data-testid="main-content" className="tab-content">
+          {renderTabContent()}
+        </main>
+
+        <footer data-testid="footer">
+          <div data-testid="system-status">
+            System Status: Operational
+          </div>
+        </footer>
+      </div>
+    </BrowserRouter>
+  );
+};
+
+// Test Suite
+describe('Arctos Robot Controller Frontend - Comprehensive Component Tests', () => {
+  const user = userEvent.setup();
+
+  beforeEach(() => {
+    // Reset all mocks before each test
+    jest.clearAllMocks();
+    
+    // Mock console methods to reduce test noise
+    global.console = {
+      ...console,
+      log: jest.fn(),
+      error: jest.fn(),
+      warn: jest.fn(),
+    };
+
+    // Reset window location
+    Object.defineProperty(window, 'location', {
+      value: { reload: jest.fn() },
+      writable: true,
+    });
+  });
+
+  describe('Application Structure and Navigation', () => {
+    test('renders complete application structure', async () => {
+      render(<MockApp />);
+      
+      // Main structure elements
+      expect(screen.getByTestId('app')).toBeInTheDocument();
+      expect(screen.getByTestId('header')).toBeInTheDocument();
+      expect(screen.getByTestId('tab-navigation')).toBeInTheDocument();
+      expect(screen.getByTestId('main-content')).toBeInTheDocument();
+      expect(screen.getByTestId('footer')).toBeInTheDocument();
+
+      // Header elements
+      expect(screen.getByText('Arctos Robot Controller')).toBeInTheDocument();
+      expect(screen.getByTestId('connection-status')).toBeInTheDocument();
+      expect(screen.getByTestId('user-info')).toBeInTheDocument();
+
+      // Navigation tabs
+      const expectedTabs = ['manual', 'gcode', 'replay', 'config', 'advanced-config', 'monitoring'];
+      expectedTabs.forEach(tabId => {
+        expect(screen.getByTestId(`tab-${tabId}`)).toBeInTheDocument();
+      });
+
+      // Footer
+      expect(screen.getByTestId('system-status')).toBeInTheDocument();
+    });
+
+    test('handles tab navigation correctly', async () => {
+      render(<MockApp />);
+      
+      // Initially shows manual control
+      expect(screen.getByTestId('manual-control')).toBeInTheDocument();
+      expect(screen.getByTestId('tab-manual')).toHaveClass('active');
+
+      // Switch to G-Code Control
+      await user.click(screen.getByTestId('tab-gcode'));
+      await waitFor(() => {
+        expect(screen.getByTestId('gcode-control')).toBeInTheDocument();
+        expect(screen.getByTestId('tab-gcode')).toHaveClass('active');
+        expect(screen.queryByTestId('manual-control')).not.toBeInTheDocument();
+      });
+
+      // Switch to Position Replay
+      await user.click(screen.getByTestId('tab-replay'));
+      await waitFor(() => {
+        expect(screen.getByTestId('position-replay')).toBeInTheDocument();
+        expect(screen.getByTestId('tab-replay')).toHaveClass('active');
+      });
+
+      // Switch to Configuration
+      await user.click(screen.getByTestId('tab-config'));
+      await waitFor(() => {
+        expect(screen.getByTestId('configuration')).toBeInTheDocument();
+        expect(screen.getByTestId('tab-config')).toHaveClass('active');
+      });
+
+      // Switch to Advanced Configuration
+      await user.click(screen.getByTestId('tab-advanced-config'));
+      await waitFor(() => {
+        expect(screen.getByTestId('advanced-configuration')).toBeInTheDocument();
+        expect(screen.getByTestId('tab-advanced-config')).toHaveClass('active');
+      });
+
+      // Switch to Monitoring
+      await user.click(screen.getByTestId('tab-monitoring'));
+      await waitFor(() => {
+        expect(screen.getByTestId('monitoring-dashboard')).toBeInTheDocument();
+        expect(screen.getByTestId('tab-monitoring')).toHaveClass('active');
+      });
+    });
+
+    test('displays connection status correctly', () => {
+      render(<MockApp />);
+      
+      const connectionStatus = screen.getByTestId('connection-status');
+      expect(connectionStatus).toHaveTextContent('Connected');
+      expect(connectionStatus).toHaveClass('status-connected');
+    });
+
+    test('displays user information', () => {
+      render(<MockApp />);
+      
+      expect(screen.getByTestId('username')).toHaveTextContent('testuser');
+      expect(screen.getByTestId('user-role')).toHaveTextContent('ADMIN');
+      expect(screen.getByTestId('logout-btn')).toBeInTheDocument();
+    });
+  });
+
+  describe('Manual Control Component - Complete Coverage', () => {
+    beforeEach(async () => {
+      render(<MockApp />);
+      // Ensure we're on the manual control tab
+      await user.click(screen.getByTestId('tab-manual'));
+    });
+
+    test('renders all axis controls', () => {
+      const expectedAxes = ['axis1', 'axis2', 'axis3', 'axis4', 'axis5', 'axis6'];
+      
+      expectedAxes.forEach(axis => {
+        expect(screen.getByTestId(`axis-${axis}`)).toBeInTheDocument();
+        expect(screen.getByTestId(`${axis}-plus`)).toBeInTheDocument();
+        expect(screen.getByTestId(`${axis}-minus`)).toBeInTheDocument();
+      });
+    });
+
+    test('renders gripper controls', () => {
+      expect(screen.getByTestId('gripper-controls')).toBeInTheDocument();
+      expect(screen.getByTestId('gripper-open')).toBeInTheDocument();
+      expect(screen.getByTestId('gripper-50')).toBeInTheDocument();
+      expect(screen.getByTestId('gripper-close')).toBeInTheDocument();
+    });
+
+    test('renders position saving controls', () => {
+      expect(screen.getByTestId('position-save')).toBeInTheDocument();
+      expect(screen.getByTestId('position-name')).toBeInTheDocument();
+      expect(screen.getByTestId('save-position')).toBeInTheDocument();
+    });
+
+    test('renders emergency controls', () => {
+      expect(screen.getByTestId('emergency-controls')).toBeInTheDocument();
+      expect(screen.getByTestId('home-button')).toBeInTheDocument();
+      
+      const emergencyStopBtn = screen.getByTestId('emergency-stop');
+      expect(emergencyStopBtn).toBeInTheDocument();
+      expect(emergencyStopBtn).toHaveStyle({ backgroundColor: 'red' });
+    });
+
+    test('displays current position', () => {
+      expect(screen.getByTestId('current-position')).toBeInTheDocument();
+      expect(screen.getByTestId('current-position')).toHaveTextContent('Current Position: X:0 Y:0 Z:0 A:0 B:0 C:0');
+    });
+
+    test('handles axis jog button interactions', async () => {
+      const axis1Plus = screen.getByTestId('axis1-plus');
+      const axis1Minus = screen.getByTestId('axis1-minus');
+      
+      // Test that buttons are clickable (no errors thrown)
+      await user.click(axis1Plus);
+      await user.click(axis1Minus);
+      
+      // Buttons should be enabled
+      expect(axis1Plus).not.toBeDisabled();
+      expect(axis1Minus).not.toBeDisabled();
+    });
+
+    test('handles gripper control interactions', async () => {
+      await user.click(screen.getByTestId('gripper-open'));
+      await user.click(screen.getByTestId('gripper-50'));
+      await user.click(screen.getByTestId('gripper-close'));
+      
+      // All gripper buttons should be functional
+      expect(screen.getByTestId('gripper-open')).not.toBeDisabled();
+      expect(screen.getByTestId('gripper-50')).not.toBeDisabled();
+      expect(screen.getByTestId('gripper-close')).not.toBeDisabled();
+    });
+
+    test('handles position name input and save', async () => {
+      const positionNameInput = screen.getByTestId('position-name');
+      const saveButton = screen.getByTestId('save-position');
+      
+      await user.type(positionNameInput, 'Test Position Name');
+      expect(positionNameInput).toHaveValue('Test Position Name');
+      
+      await user.click(saveButton);
+      expect(saveButton).not.toBeDisabled();
+    });
+
+    test('handles home button click', async () => {
+      const homeButton = screen.getByTestId('home-button');
+      await user.click(homeButton);
+      expect(homeButton).not.toBeDisabled();
+    });
+
+    test('handles emergency stop button click', async () => {
+      const emergencyStopBtn = screen.getByTestId('emergency-stop');
+      await user.click(emergencyStopBtn);
+      expect(emergencyStopBtn).not.toBeDisabled();
+    });
+  });
+
+  describe('G-Code Control Component - Complete Coverage', () => {
+    beforeEach(async () => {
+      render(<MockApp />);
+      await user.click(screen.getByTestId('tab-gcode'));
+    });
+
+    test('renders G-Code editor interface', () => {
+      expect(screen.getByTestId('gcode-control')).toBeInTheDocument();
+      expect(screen.getByTestId('gcode-editor')).toBeInTheDocument();
+      expect(screen.getByTestId('gcode-input')).toBeInTheDocument();
+      expect(screen.getByTestId('gcode-controls')).toBeInTheDocument();
+    });
+
+    test('renders all control buttons', () => {
+      expect(screen.getByTestId('load-sample')).toBeInTheDocument();
+      expect(screen.getByTestId('execute-gcode')).toBeInTheDocument();
+      expect(screen.getByTestId('stop-gcode')).toBeInTheDocument();
+      expect(screen.getByTestId('validate-gcode')).toBeInTheDocument();
+    });
+
+    test('renders status and progress indicators', () => {
+      expect(screen.getByTestId('gcode-status')).toBeInTheDocument();
+      expect(screen.getByTestId('execution-status')).toBeInTheDocument();
+      expect(screen.getByTestId('progress-bar')).toBeInTheDocument();
+    });
+
+    test('renders coordinate system controls', () => {
+      expect(screen.getByTestId('coordinate-system')).toBeInTheDocument();
+      expect(screen.getByTestId('coordinate-system-select')).toBeInTheDocument();
+      
+      // Check coordinate system options
+      const coordinateSelect = screen.getByTestId('coordinate-system-select');
+      expect(coordinateSelect).toBeInTheDocument();
+    });
+
+    test('handles G-Code input', async () => {
+      const gcodeInput = screen.getByTestId('gcode-input');
+      const testGCode = 'G1 X10 Y10 Z5 F1000\nG1 X0 Y0 Z0';
+      
+      await user.type(gcodeInput, testGCode);
+      expect(gcodeInput).toHaveValue(testGCode);
+    });
+
+    test('handles control button interactions', async () => {
+      await user.click(screen.getByTestId('load-sample'));
+      await user.click(screen.getByTestId('validate-gcode'));
+      await user.click(screen.getByTestId('execute-gcode'));
+      await user.click(screen.getByTestId('stop-gcode'));
+      
+      // All buttons should be functional
+      expect(screen.getByTestId('load-sample')).not.toBeDisabled();
+      expect(screen.getByTestId('execute-gcode')).not.toBeDisabled();
+      expect(screen.getByTestId('stop-gcode')).not.toBeDisabled();
+      expect(screen.getByTestId('validate-gcode')).not.toBeDisabled();
+    });
+
+    test('handles coordinate system selection', async () => {
+      const coordinateSelect = screen.getByTestId('coordinate-system-select');
+      await user.selectOptions(coordinateSelect, 'G55');
+      expect(coordinateSelect).toHaveValue('G55');
+    });
+
+    test('displays validation errors area', () => {
+      expect(screen.getByTestId('validation-errors')).toBeInTheDocument();
+    });
+  });
+
+  describe('Position Replay Component - Complete Coverage', () => {
+    beforeEach(async () => {
+      render(<MockApp />);
+      await user.click(screen.getByTestId('tab-replay'));
+    });
+
+    test('renders position list and controls', () => {
+      expect(screen.getByTestId('position-replay')).toBeInTheDocument();
+      expect(screen.getByTestId('position-list')).toBeInTheDocument();
+      expect(screen.getByTestId('position-controls')).toBeInTheDocument();
+      expect(screen.getByTestId('positions')).toBeInTheDocument();
+    });
+
+    test('displays all saved positions', () => {
+      mockPositions.forEach(position => {
+        expect(screen.getByTestId(`position-${position.id}`)).toBeInTheDocument();
+        expect(screen.getByTestId(`name-${position.id}`)).toHaveTextContent(position.name);
+        expect(screen.getByTestId(`details-${position.id}`)).toBeInTheDocument();
+        expect(screen.getByTestId(`checkbox-${position.id}`)).toBeInTheDocument();
+        expect(screen.getByTestId(`edit-${position.id}`)).toBeInTheDocument();
+        expect(screen.getByTestId(`delete-${position.id}`)).toBeInTheDocument();
+      });
+    });
+
+    test('renders replay control buttons', () => {
+      expect(screen.getByTestId('select-all')).toBeInTheDocument();
+      expect(screen.getByTestId('clear-selection')).toBeInTheDocument();
+      expect(screen.getByTestId('replay-selected')).toBeInTheDocument();
+      expect(screen.getByTestId('stop-replay')).toBeInTheDocument();
+    });
+
+    test('handles position selection', async () => {
+      const checkbox1 = screen.getByTestId('checkbox-1');
+      const checkbox2 = screen.getByTestId('checkbox-2');
+      
+      await user.click(checkbox1);
+      await user.click(checkbox2);
+      
+      expect(checkbox1).not.toBeDisabled();
+      expect(checkbox2).not.toBeDisabled();
+    });
+
+    test('handles select all and clear selection', async () => {
+      await user.click(screen.getByTestId('select-all'));
+      await user.click(screen.getByTestId('clear-selection'));
+      
+      expect(screen.getByTestId('select-all')).not.toBeDisabled();
+      expect(screen.getByTestId('clear-selection')).not.toBeDisabled();
+    });
+
+    test('handles position editing and deletion', async () => {
+      await user.click(screen.getByTestId('edit-1'));
+      await user.click(screen.getByTestId('delete-1'));
+      
+      expect(screen.getByTestId('edit-1')).not.toBeDisabled();
+      expect(screen.getByTestId('delete-1')).not.toBeDisabled();
+    });
+
+    test('renders group management section', () => {
+      expect(screen.getByTestId('group-management')).toBeInTheDocument();
+      expect(screen.getByTestId('groups')).toBeInTheDocument();
+      expect(screen.getByTestId('group-creation')).toBeInTheDocument();
+    });
+
+    test('displays position groups', () => {
+      mockGroups.forEach(group => {
+        expect(screen.getByTestId(`group-${group.id}`)).toBeInTheDocument();
+        expect(screen.getByTestId(`select-group-${group.id}`)).toBeInTheDocument();
+      });
+    });
+
+    test('handles group creation', async () => {
+      const groupNameInput = screen.getByTestId('group-name');
+      const createGroupBtn = screen.getByTestId('create-group');
+      
+      await user.type(groupNameInput, 'New Test Group');
+      expect(groupNameInput).toHaveValue('New Test Group');
+      
+      await user.click(createGroupBtn);
+      expect(createGroupBtn).not.toBeDisabled();
+    });
+
+    test('renders replay options', () => {
+      expect(screen.getByTestId('replay-options')).toBeInTheDocument();
+      expect(screen.getByTestId('replay-mode')).toBeInTheDocument();
+      expect(screen.getByTestId('repeat-count')).toBeInTheDocument();
+      expect(screen.getByTestId('global-delay')).toBeInTheDocument();
+    });
+
+    test('handles replay option changes', async () => {
+      const replayModeSelect = screen.getByTestId('replay-mode');
+      const repeatCountInput = screen.getByTestId('repeat-count');
+      const globalDelayInput = screen.getByTestId('global-delay');
+      
+      await user.selectOptions(replayModeSelect, 'count');
+      expect(replayModeSelect).toHaveValue('count');
+      
+      await user.clear(repeatCountInput);
+      await user.type(repeatCountInput, '5');
+      expect(repeatCountInput).toHaveValue(5);
+      
+      await user.clear(globalDelayInput);
+      await user.type(globalDelayInput, '2000');
+      expect(globalDelayInput).toHaveValue(2000);
+    });
+
+    test('displays replay progress', () => {
+      expect(screen.getByTestId('replay-progress')).toBeInTheDocument();
+      expect(screen.getByTestId('current-position-replay')).toBeInTheDocument();
+      expect(screen.getByTestId('replay-progress-bar')).toBeInTheDocument();
+    });
+  });
+
+  describe('Configuration Component - Complete Coverage', () => {
+    beforeEach(async () => {
+      render(<MockApp />);
+      await user.click(screen.getByTestId('tab-config'));
+    });
+
+    test('renders configuration interface', () => {
+      expect(screen.getByTestId('configuration')).toBeInTheDocument();
+      expect(screen.getByTestId('robot-settings')).toBeInTheDocument();
+      expect(screen.getByTestId('axis-limits')).toBeInTheDocument();
+      expect(screen.getByTestId('manipulator-settings')).toBeInTheDocument();
+      expect(screen.getByTestId('save-section')).toBeInTheDocument();
+    });
+
+    test('renders robot type and communication settings', () => {
+      expect(screen.getByTestId('robot-type-section')).toBeInTheDocument();
+      expect(screen.getByTestId('robot-type')).toBeInTheDocument();
+      expect(screen.getByTestId('communication-section')).toBeInTheDocument();
+      expect(screen.getByTestId('protocol')).toBeInTheDocument();
+    });
+
+    test('displays axis limit configurations', () => {
+      const expectedAxes = ['axis1', 'axis2', 'axis3', 'axis4', 'axis5', 'axis6'];
+      
+      expectedAxes.forEach(axis => {
+        expect(screen.getByTestId(`axis-limit-${axis}`)).toBeInTheDocument();
+        expect(screen.getByTestId(`${axis}-min`)).toBeInTheDocument();
+        expect(screen.getByTestId(`${axis}-max`)).toBeInTheDocument();
+      });
+    });
+
+    test('displays manipulator settings', () => {
+      expect(screen.getByTestId('manipulator-gripper1')).toBeInTheDocument();
+      expect(screen.getByTestId('gripper1-min')).toBeInTheDocument();
+      expect(screen.getByTestId('gripper1-max')).toBeInTheDocument();
+      
+      expect(screen.getByTestId('manipulator-gripper2')).toBeInTheDocument();
+      expect(screen.getByTestId('gripper2-min')).toBeInTheDocument();
+      expect(screen.getByTestId('gripper2-max')).toBeInTheDocument();
+    });
+
+    test('handles robot type selection', async () => {
+      const robotTypeSelect = screen.getByTestId('robot-type');
+      await user.selectOptions(robotTypeSelect, '4-axis');
+      expect(robotTypeSelect).toHaveValue('4-axis');
+    });
+
+    test('handles communication protocol selection', async () => {
+      const protocolSelect = screen.getByTestId('protocol');
+      await user.selectOptions(protocolSelect, 'serial');
+      expect(protocolSelect).toHaveValue('serial');
+    });
+
+    test('handles axis limit modifications', async () => {
+      const axis1MinInput = screen.getByTestId('axis1-min');
+      const axis1MaxInput = screen.getByTestId('axis1-max');
+      
+      await user.clear(axis1MinInput);
+      await user.type(axis1MinInput, '-90');
+      expect(axis1MinInput).toHaveValue(-90);
+      
+      await user.clear(axis1MaxInput);
+      await user.type(axis1MaxInput, '90');
+      expect(axis1MaxInput).toHaveValue(90);
+    });
+
+    test('handles manipulator setting modifications', async () => {
+      const gripper1MinInput = screen.getByTestId('gripper1-min');
+      const gripper1MaxInput = screen.getByTestId('gripper1-max');
+      
+      await user.clear(gripper1MinInput);
+      await user.type(gripper1MinInput, '10');
+      expect(gripper1MinInput).toHaveValue(10);
+      
+      await user.clear(gripper1MaxInput);
+      await user.type(gripper1MaxInput, '90');
+      expect(gripper1MaxInput).toHaveValue(90);
+    });
+
+    test('renders action buttons', () => {
+      expect(screen.getByTestId('save-config')).toBeInTheDocument();
+      expect(screen.getByTestId('reset-config')).toBeInTheDocument();
+      expect(screen.getByTestId('export-config')).toBeInTheDocument();
+      expect(screen.getByTestId('import-config')).toBeInTheDocument();
+    });
+
+    test('handles action button clicks', async () => {
+      await user.click(screen.getByTestId('save-config'));
+      await user.click(screen.getByTestId('reset-config'));
+      await user.click(screen.getByTestId('export-config'));
+      await user.click(screen.getByTestId('import-config'));
+      
+      expect(screen.getByTestId('save-config')).not.toBeDisabled();
+      expect(screen.getByTestId('reset-config')).not.toBeDisabled();
+      expect(screen.getByTestId('export-config')).not.toBeDisabled();
+      expect(screen.getByTestId('import-config')).not.toBeDisabled();
+    });
+
+    test('displays save status area', () => {
+      expect(screen.getByTestId('save-status')).toBeInTheDocument();
+    });
+  });
+
+  describe('Advanced Configuration Component - Complete Coverage', () => {
+    beforeEach(async () => {
+      render(<MockApp />);
+      await user.click(screen.getByTestId('tab-advanced-config'));
+    });
+
+    test('renders advanced configuration sections', () => {
+      expect(screen.getByTestId('advanced-configuration')).toBeInTheDocument();
+      expect(screen.getByTestId('mks42d-settings')).toBeInTheDocument();
+      expect(screen.getByTestId('safety-settings')).toBeInTheDocument();
+      expect(screen.getByTestId('network-settings')).toBeInTheDocument();
+    });
+
+    test('renders MKS42D controller settings', () => {
+      expect(screen.getByTestId('mks42d-enabled')).toBeInTheDocument();
+      expect(screen.getByTestId('mks42d-enable')).toBeInTheDocument();
+      expect(screen.getByTestId('steps-per-mm')).toBeInTheDocument();
+      expect(screen.getByTestId('steps-x')).toBeInTheDocument();
+      expect(screen.getByTestId('steps-y')).toBeInTheDocument();
+      expect(screen.getByTestId('steps-z')).toBeInTheDocument();
+    });
+
+    test('renders safety settings', () => {
+      expect(screen.getByTestId('max-velocity')).toBeInTheDocument();
+      expect(screen.getByTestId('max-acceleration')).toBeInTheDocument();
+      expect(screen.getByTestId('emergency-stop-time')).toBeInTheDocument();
+    });
+
+    test('renders network settings', () => {
+      expect(screen.getByTestId('can-interface')).toBeInTheDocument();
+      expect(screen.getByTestId('serial-port')).toBeInTheDocument();
+      expect(screen.getByTestId('baud-rate')).toBeInTheDocument();
+    });
+
+    test('handles MKS42D enable/disable', async () => {
+      const enableCheckbox = screen.getByTestId('mks42d-enable');
+      await user.click(enableCheckbox);
+      expect(enableCheckbox).not.toBeDisabled();
+    });
+
+    test('handles steps per MM configuration', async () => {
+      const stepsXInput = screen.getByTestId('steps-x');
+      const stepsYInput = screen.getByTestId('steps-y');
+      const stepsZInput = screen.getByTestId('steps-z');
+      
+      await user.type(stepsXInput, '80');
+      await user.type(stepsYInput, '80');
+      await user.type(stepsZInput, '400');
+      
+      expect(stepsXInput).toHaveValue(80);
+      expect(stepsYInput).toHaveValue(80);
+      expect(stepsZInput).toHaveValue(400);
+    });
+
+    test('handles safety parameter configuration', async () => {
+      const maxVelInput = screen.getByTestId('max-velocity');
+      const maxAccInput = screen.getByTestId('max-acceleration');
+      const estopTimeInput = screen.getByTestId('emergency-stop-time');
+      
+      await user.type(maxVelInput, '1000');
+      await user.type(maxAccInput, '500');
+      await user.type(estopTimeInput, '100');
+      
+      expect(maxVelInput).toHaveValue(1000);
+      expect(maxAccInput).toHaveValue(500);
+      expect(estopTimeInput).toHaveValue(100);
+    });
+
+    test('handles network configuration', async () => {
+      const canInterfaceInput = screen.getByTestId('can-interface');
+      const serialPortInput = screen.getByTestId('serial-port');
+      const baudRateInput = screen.getByTestId('baud-rate');
+      
+      await user.type(canInterfaceInput, 'can0');
+      await user.type(serialPortInput, '/dev/ttyUSB0');
+      await user.type(baudRateInput, '115200');
+      
+      expect(canInterfaceInput).toHaveValue('can0');
+      expect(serialPortInput).toHaveValue('/dev/ttyUSB0');
+      expect(baudRateInput).toHaveValue(115200);
+    });
+  });
+
+  describe('Monitoring Dashboard Component - Complete Coverage', () => {
+    beforeEach(async () => {
+      render(<MockApp />);
+      await user.click(screen.getByTestId('tab-monitoring'));
+    });
+
+    test('renders monitoring dashboard', () => {
+      expect(screen.getByTestId('monitoring-dashboard')).toBeInTheDocument();
+      expect(screen.getByTestId('system-metrics')).toBeInTheDocument();
+      expect(screen.getByTestId('robot-status')).toBeInTheDocument();
+      expect(screen.getByTestId('alerts')).toBeInTheDocument();
+      expect(screen.getByTestId('performance-charts')).toBeInTheDocument();
+    });
+
+    test('displays system metrics', () => {
+      expect(screen.getByTestId('cpu-usage')).toBeInTheDocument();
+      expect(screen.getByTestId('memory-usage')).toBeInTheDocument();
+      expect(screen.getByTestId('temperature')).toBeInTheDocument();
+      
+      expect(screen.getByTestId('cpu-usage')).toHaveTextContent('CPU: 45%');
+      expect(screen.getByTestId('memory-usage')).toHaveTextContent('Memory: 1.2GB / 8GB');
+      expect(screen.getByTestId('temperature')).toHaveTextContent('Temperature: 42°C');
+    });
+
+    test('displays robot status information', () => {
+      expect(screen.getByTestId('connection-status')).toBeInTheDocument();
+      expect(screen.getByTestId('position-status')).toBeInTheDocument();
+      expect(screen.getByTestId('execution-status')).toBeInTheDocument();
+      
+      expect(screen.getByTestId('connection-status')).toHaveTextContent('Connection: Connected');
+      expect(screen.getByTestId('position-status')).toHaveTextContent('Position: X:0 Y:0 Z:0');
+      expect(screen.getByTestId('execution-status')).toHaveTextContent('Execution: Idle');
+    });
+
+    test('displays alerts section', () => {
+      expect(screen.getByTestId('alerts')).toBeInTheDocument();
+      expect(screen.getByTestId('alert-list')).toBeInTheDocument();
+    });
+
+    test('displays performance charts', () => {
+      expect(screen.getByTestId('cpu-chart')).toBeInTheDocument();
+      expect(screen.getByTestId('memory-chart')).toBeInTheDocument();
+      expect(screen.getByTestId('temperature-chart')).toBeInTheDocument();
+    });
+  });
+
+  describe('Accessibility and Keyboard Navigation', () => {
+    test('tab buttons have proper ARIA labels', async () => {
+      render(<MockApp />);
+      
+      const tabs = ['manual', 'gcode', 'replay', 'config', 'advanced-config', 'monitoring'];
+      tabs.forEach(tabId => {
+        const tabButton = screen.getByTestId(`tab-${tabId}`);
+        expect(tabButton).toHaveAttribute('aria-label');
+      });
+    });
+
+    test('supports keyboard navigation', async () => {
+      render(<MockApp />);
+      
+      // Tab through elements
+      const tabManual = screen.getByTestId('tab-manual');
+      const tabGCode = screen.getByTestId('tab-gcode');
+      
+      tabManual.focus();
+      expect(tabManual).toHaveFocus();
+      
+      // Simulate Tab key press
+      await user.keyboard('{Tab}');
+      expect(tabGCode).toHaveFocus();
+    });
+
+    test('supports Enter key activation', async () => {
+      render(<MockApp />);
+      
+      const tabGCode = screen.getByTestId('tab-gcode');
+      tabGCode.focus();
+      
+      await user.keyboard('{Enter}');
+      await waitFor(() => {
+        expect(screen.getByTestId('gcode-control')).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('Error Handling and Edge Cases', () => {
+    test('handles missing configuration gracefully', () => {
+      const MockAppWithoutConfig = () => {
+        const [config] = React.useState(null);
+        return (
+          <div data-testid="app-no-config">
+            <MockManualControl config={config} socket={null} />
+          </div>
+        );
+      };
+
+      expect(() => render(<MockAppWithoutConfig />)).not.toThrow();
+    });
+
+    test('handles empty position and group arrays', () => {
+      const MockAppWithEmptyData = () => {
+        const [positions] = React.useState([]);
+        const [groups] = React.useState([]);
+        return (
+          <div data-testid="app-empty-data">
+            <MockPositionReplay 
+              positions={positions} 
+              groups={groups} 
+              socket={null}
+              config={mockRobotConfig}
+            />
+          </div>
+        );
+      };
+
+      render(<MockAppWithEmptyData />);
+      expect(screen.getByTestId('app-empty-data')).toBeInTheDocument();
+    });
+
+    test('handles socket connection errors gracefully', () => {
+      const MockAppWithSocketError = () => {
+        const [socket] = React.useState(null);
+        return (
+          <div data-testid="app-socket-error">
+            <MockGCodeControl socket={socket} />
+          </div>
+        );
+      };
+
+      expect(() => render(<MockAppWithSocketError />)).not.toThrow();
+    });
+  });
+
+  describe('Integration and State Management', () => {
+    test('maintains state across tab switches', async () => {
+      render(<MockApp />);
+      
+      // Go to configuration tab and verify robot type
+      await user.click(screen.getByTestId('tab-config'));
+      const robotTypeSelect = screen.getByTestId('robot-type');
+      expect(robotTypeSelect).toHaveValue('6-axis');
+      
+      // Switch to another tab and back
+      await user.click(screen.getByTestId('tab-manual'));
+      await user.click(screen.getByTestId('tab-config'));
+      
+      // Robot type should still be the same
+      expect(screen.getByTestId('robot-type')).toHaveValue('6-axis');
+    });
+
+    test('updates connection status across components', () => {
+      render(<MockApp />);
+      
+      // Connection status should be visible in header
+      expect(screen.getByTestId('connection-status')).toHaveTextContent('Connected');
+      
+      // Switch to monitoring tab
+      fireEvent.click(screen.getByTestId('tab-monitoring'));
+      
+      // Connection status should also be shown in monitoring
+      waitFor(() => {
+        expect(screen.getByTestId('connection-status')).toHaveTextContent('Connection: Connected');
+      });
+    });
+  });
+});

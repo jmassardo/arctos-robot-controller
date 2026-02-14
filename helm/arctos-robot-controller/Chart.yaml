@@ -1,0 +1,21 @@
+apiVersion: v2
+name: arctos-robot-controller
+description: A Helm chart for Arctos Robot Controller application
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - robotics
+  - control
+  - automation
+  - gcode
+maintainers:
+  - name: DevOps Team
+    email: devops@example.com
+sources:
+  - https://github.com/example/arctos-robot-controller
+dependencies:
+  - name: redis
+    version: 17.x.x
+    repository: https://charts.bitnami.com/bitnami
+    condition: redis.enabled
