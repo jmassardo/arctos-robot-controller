@@ -141,9 +141,7 @@ jobs:
         cd client && npm ci
       
     - name: Run backend security audit
-      run: npm audit --audit-level=high
-      continue-on-error: true
+      run: npm audit --omit=dev --audit-level=critical
       
     - name: Run frontend security audit
-      run: cd client && npm audit --audit-level=high
-      continue-on-error: true
+      run: cd client && npm audit --omit=dev --audit-level=critical
