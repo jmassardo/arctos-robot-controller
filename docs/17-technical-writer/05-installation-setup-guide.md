@@ -146,7 +146,7 @@ git clone https://github.com/your-org/arctos-robot-controller.git
 cd arctos-robot-controller
 
 # Copy environment template
-cp .env.docker .env
+cp .env.docker.example .env
 ```
 
 **Step 2: Configure Environment**

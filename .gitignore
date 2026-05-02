@@ -50,7 +50,10 @@ temp/
 docker-data/
 docker-logs/
 
-# Environment files
-.env.docker
+# Environment files (track .example templates, ignore actual env files)
+.env
 .env.local
-.env.productiontest/test-logs*/
+.env.production
+.env.docker
+
+test/test-logs*
