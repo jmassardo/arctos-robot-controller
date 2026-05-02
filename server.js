@@ -64,6 +64,27 @@ const io = socketIo(server, {
 const PORT = process.env.PORT || (process.env.NODE_ENV === 'production' ? 5000 : 3001);
 const isElectron = process.env.ELECTRON || process.versions.electron;
 
+// Socket.IO authentication middleware
+io.use(async (socket, next) => {
+  try {
+    const token = socket.handshake.auth?.token;
+    if (!token) {
+      return next(new Error('Authentication token required'));
+    }
+
+    const result = authService.verifyAccessToken(token);
+    if (!result.success) {
+      return next(new Error('Invalid or expired token'));
+    }
+
+    // Attach user data to socket
+    socket.user = result.user;
+    next();
+  } catch (error) {
+    next(new Error('Authentication failed'));
+  }
+});
+
 // Log server startup
 logger.info('Arctos Robot Controller server starting...', {
   port: PORT,
@@ -81,18 +102,20 @@ app.use(performanceMiddleware);
 app.use(requestLoggingMiddleware);
 
 // CORS configuration with enhanced security
+const allowedOrigins = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(',').map(o => o.trim())
+  : process.env.NODE_ENV === 'production'
+    ? ['https://localhost:5000']
+    : ['http://localhost:3000', 'http://localhost:5000'];
+
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Allow requests with no origin (mobile apps, etc.)
+      // Allow requests with no origin (same-origin, Electron, curl)
+      // In production, these are logged by the security monitoring middleware
       if (!origin) {
         return callback(null, true);
       }
-
-      const allowedOrigins =
-        process.env.NODE_ENV === 'production'
-          ? ['https://localhost:5000']
-          : ['http://localhost:3000', 'http://localhost:5000'];
 
       if (allowedOrigins.indexOf(origin) !== -1) {
         callback(null, true);
@@ -109,6 +132,12 @@ app.use(
     optionsSuccessStatus: 200,
   })
 );
+
+// Add Vary: Origin header
+app.use((req, res, next) => {
+  res.setHeader('Vary', 'Origin');
+  next();
+});
 
 // Body parsing with size limits
 app.use(bodyParser.json({ limit: '10mb' }));
@@ -351,18 +380,24 @@ async function initializeMacroSystem() {
 // Initialize macro system on startup
 initializeMacroSystem();
 
-// Health check endpoint for Docker (unauthenticated)
+// Health check endpoint for Docker/load balancers (unauthenticated - minimal info)
 app.get('/api/health', (req, res) => {
-  const health = {
+  res.status(200).json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// Detailed health check (authenticated, for monitoring dashboards)
+app.get('/api/health/detailed', authenticateToken, requireRole(['admin']), (req, res) => {
+  res.status(200).json({
     status: 'healthy',
     timestamp: new Date().toISOString(),
     version: process.env.npm_package_version || require('./package.json').version,
     uptime: process.uptime(),
     environment: process.env.NODE_ENV || 'development',
     memory: process.memoryUsage(),
-  };
-
-  res.status(200).json(health);
+  });
 });
 
 // Authentication Routes (public endpoints)
@@ -374,7 +409,7 @@ app.post(
   rateLimits.auth,
   registerValidation,
   handleValidationErrors,
-  process.env.NODE_ENV === 'production' ? [authenticateToken, requireRole('admin')] : [],
+  process.env.ALLOW_OPEN_REGISTRATION === 'true' ? [] : [authenticateToken, requireRole('admin')],
   async (req, res) => {
     try {
       const { username, email, password, role } = req.body;
@@ -727,6 +762,7 @@ app.post(
 // Verify 2FA token (for login)
 app.post(
   '/api/auth/2fa/verify',
+  rateLimits.auth,
   body('userId').isInt().withMessage('User ID must be a number'),
   body('token').isLength({ min: 6, max: 8 }).withMessage('Token must be 6-8 characters'),
   body('isBackupCode').optional().isBoolean().withMessage('isBackupCode must be boolean'),
@@ -3660,7 +3696,7 @@ if (!module.parent || isElectron) {
         console.log(`✓ Electron mode: ${isElectron ? 'Yes' : 'No'}`);
         console.log(`✓ Database: ${databaseManager ? 'SQLite' : 'JSON fallback'}`);
         console.log(`✓ Monitoring: ${systemMonitor ? 'Enabled' : 'Disabled'}`);
-        console.log('✓ Default admin login: username=admin, password=admin123!');
+        console.log('✓ Authentication: enabled');
       });
     // })
     // .catch(error => {

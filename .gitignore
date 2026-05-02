@@ -19,6 +19,10 @@ yarn-error.log*
 # Configuration and data files (keep local versions)
 config/robot-config.json
 data/saved-positions.json
+data/users.json
+data/sessions.json
+data/initial-admin-password.txt
+data/robot-profiles.json
 
 # OS generated files
 .DS_Store
@@ -46,6 +50,10 @@ temp/
 docker-data/
 docker-logs/
 
-# Environment files (but keep .env.docker as template)
+# Environment files (track .example templates, ignore actual env files)
+.env
 .env.local
-.env.productiontest/test-logs*/
+.env.production
+.env.docker
+
+test/test-logs*

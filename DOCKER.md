@@ -65,9 +65,9 @@ This guide covers how to deploy Arctos Robot Controller using Docker containers.
 
 ## Environment Configuration
 
-### Production Environment (`.env.docker`)
+### Production Environment (`.env.docker.example`)
 
-- Copy and customize `.env.docker` for your deployment
+- Copy `.env.docker.example` to `.env.docker` and customize for your deployment
 - Set secure values for JWT_SECRET and SESSION_SECRET
 - Configure hardware interfaces as needed
 
